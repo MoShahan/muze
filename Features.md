@@ -11,7 +11,7 @@ Muze is a personal Android music player built with Expo. It scans and plays audi
 - Rename audio filenames separately from song titles.
 - Delete audio files after confirmation and required Android system approval.
 - Sort track lists by title, artist, date added, or duration.
-- Search songs, albums, artists, and playlists.
+- Search in place on each list screen (top search filters that page’s content only—e.g. Albums searches albums). No separate global search page.
 - Rescan the library and keep local metadata current.
 
 ### Playback
@@ -31,7 +31,7 @@ Muze is a personal Android music player built with Expo. It scans and plays audi
 - Manage Favorites and recently played tracks.
 - Support system, light, and dark themes.
 - Use a monochrome visual palette of dark gray and muted white, with no bright accent colors.
-- Set an optional display name in Settings for the time-of-day Home greeting; it is stored locally. The default name is "Melophile".
+- Set an optional display name in Settings for the time-of-day Home greeting; it is stored locally. The default name is "Melophile". Editing opens a modal with a text field and a Save button.
 - Use a neomorphic visual style.
 
 ## Out of scope for v1
