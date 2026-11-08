@@ -7,23 +7,20 @@
     "icon": "./assets/images/icon.png",
     "scheme": "muze",
     "userInterfaceStyle": "automatic",
+    "primaryColor": "#1C1E22",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.moshahan.muze",
+      "icon": "./assets/images/icon.png"
     },
     "android": {
+      "package": "com.moshahan.muze",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F1EFE9",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
-      ]
+      "permissions": ["android.permission.POST_NOTIFICATIONS"]
     },
     "web": {
       "output": "server",
@@ -31,16 +28,44 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#E6E9EF",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 128,
+          "dark": {
+            "backgroundColor": "#1C1E22",
+            "image": "./assets/images/splash-icon-dark.png"
+          }
         }
       ],
-      "expo-audio",
-      "expo-sqlite",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Muze needs access to audio files so you can play music stored on this device.",
+          "savePhotosPermission": false,
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": ["audio"]
+        }
+      ],
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true,
+          "useSQLCipher": false
+        }
+      ],
       "expo-asset"
     ],
     "experiments": {
