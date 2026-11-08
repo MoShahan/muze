@@ -1,82 +1,37 @@
-import { useFocusEffect, router } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { NeoCard } from '@/components/ui/neo-card';
 import { NeoSurface } from '@/components/ui/neo-surface';
 import { Screen } from '@/components/ui/screen';
 import { Radius, Spacing } from '@/constants/theme';
-import { DEFAULT_DISPLAY_NAME, getDisplayName } from '@/lib/db/settings';
-import { formatHomeGreeting } from '@/lib/greeting';
 
-export default function HomeScreen() {
-  const db = useSQLiteContext();
-  const [greeting, setGreeting] = useState(formatHomeGreeting(DEFAULT_DISPLAY_NAME));
-
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      void (async () => {
-        const name = await getDisplayName(db);
-        if (!cancelled) {
-          setGreeting(formatHomeGreeting(name));
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
-    }, [db]),
-  );
-
+/** Default tab (Expo `index` route). Product name: Songs. */
+export default function SongsScreen() {
   return (
     <Screen contentStyle={styles.content}>
-      <View style={styles.header}>
-        <AppText variant="display">{greeting}</AppText>
-        <AppText variant="subtitle" tone="secondary">
-          Recently played, favorites, and jump-back-in will live here.
-        </AppText>
-      </View>
-
+      <AppText variant="display">Songs</AppText>
       <NeoCard>
-        <NeoCard.Title>Jump back in</NeoCard.Title>
-        <NeoCard.Subtitle>
-          Open the player preview while the library is still empty.
-        </NeoCard.Subtitle>
+        <AppText variant="subtitle" tone="secondary">
+          Your tracks will list here after the library scan.
+        </AppText>
       </NeoCard>
-
-      <View style={styles.actions}>
-        <HomeAction label="Open player" onPress={() => router.push('/player')} />
-        <HomeAction label="Search" onPress={() => router.push('/search')} />
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open player"
+        onPress={() => router.push('/player')}
+      >
+        <NeoSurface variant="raised" radius={Radius.lg} style={styles.action}>
+          <AppText variant="bodyStrong">Open player</AppText>
+        </NeoSurface>
+      </Pressable>
     </Screen>
-  );
-}
-
-type HomeActionProps = {
-  label: string;
-  onPress: () => void;
-};
-
-function HomeAction({ label, onPress }: HomeActionProps) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
-      <NeoSurface variant="raised" radius={Radius.lg} style={styles.action}>
-        <AppText variant="bodyStrong">{label}</AppText>
-      </NeoSurface>
-    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    gap: Spacing.four,
-  },
-  header: {
-    gap: Spacing.two,
-  },
-  actions: {
     gap: Spacing.three,
   },
   action: {

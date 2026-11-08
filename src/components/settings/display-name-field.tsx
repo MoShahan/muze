@@ -58,7 +58,7 @@ export function DisplayNameField() {
         <NeoCard style={styles.row}>
           <View style={styles.rowCopy}>
             <NeoCard.Title>Display name</NeoCard.Title>
-            <NeoCard.Subtitle>Used in the Home greeting</NeoCard.Subtitle>
+            <NeoCard.Subtitle>Used in greetings (e.g. Songs header)</NeoCard.Subtitle>
           </View>
           <AppText variant="label" tone="secondary">
             {savedName}
@@ -85,7 +85,7 @@ export function DisplayNameField() {
               <View style={styles.dialogHeader}>
                 <AppText variant="title">Display name</AppText>
                 <AppText variant="caption" tone="muted">
-                  Used in the Home greeting
+                  Used in greetings (e.g. Songs header)
                 </AppText>
               </View>
 

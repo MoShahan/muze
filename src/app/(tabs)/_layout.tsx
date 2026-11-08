@@ -17,15 +17,25 @@ export default function TabsLayout() {
       labelVisibilityMode="unlabeled"
       rippleColor={colors.overlay}
     >
-      <NativeTabs.Trigger name="index" accessibilityLabel="Home">
-        <NativeTabs.Trigger.Label hidden>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="library" accessibilityLabel="Library">
-        <NativeTabs.Trigger.Label hidden>Library</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="index" accessibilityLabel="Songs">
+        <NativeTabs.Trigger.Label hidden>Songs</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf={{ default: 'music.note.list', selected: 'music.note.list' }}
-          md="library_music"
+          sf={{ default: 'music.note', selected: 'music.note' }}
+          md="music_note"
+        />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="albums" accessibilityLabel="Albums">
+        <NativeTabs.Trigger.Label hidden>Albums</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'square.stack', selected: 'square.stack.fill' }}
+          md="album"
+        />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="artists" accessibilityLabel="Artists">
+        <NativeTabs.Trigger.Label hidden>Artists</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'person.2', selected: 'person.2.fill' }}
+          md="people"
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="playlists" accessibilityLabel="Playlists">
