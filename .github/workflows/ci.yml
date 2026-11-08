@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Lint, format, and type-check
+    name: ESLint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -26,12 +26,44 @@ jobs:
       - name: Run ESLint
         run: npx expo lint
 
+  format:
+    name: Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Check formatting
         run: >-
           npx prettier --check "src/**/*.{ts,tsx,css}" "scripts/**/*.js"
           "app.json" "package.json" "package-lock.json" "tsconfig.json"
-          "eslint.config.js" "jest.config.js" "jest.setup.ts" ".prettierrc"
+          "eslint.config.js" "jest.config.js" ".prettierrc"
           ".github/workflows/ci.yml"
+
+  typecheck:
+    name: Type-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Type-check
         run: npx tsc --noEmit
