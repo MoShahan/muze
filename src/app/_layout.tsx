@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DatabaseProvider } from '@/store/database-provider';
 import { PlaybackProvider } from '@/store/playback-provider';
@@ -18,25 +19,25 @@ function RootNavigator() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.canvas },
-        headerTintColor: colors.text,
-        headerShadowVisible: false,
+        headerShown: false,
         contentStyle: { backgroundColor: colors.canvas },
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Muze' }} />
+      <Stack.Screen name="index" />
     </Stack>
   );
 }
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <DatabaseProvider>
-        <PlaybackProvider>
-          <RootNavigator />
-        </PlaybackProvider>
-      </DatabaseProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <DatabaseProvider>
+          <PlaybackProvider>
+            <RootNavigator />
+          </PlaybackProvider>
+        </DatabaseProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
