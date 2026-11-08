@@ -32,7 +32,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingTop: Spacing.one,
+    paddingBottom: Spacing.half,
   },
   side: {
     width: 40,

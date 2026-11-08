@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -35,9 +36,11 @@ export function SongInformation({
         onPress={onToggleFavorite}
         style={styles.heartHit}
       >
-        <Text style={[styles.heart, { color: favorited ? colors.accent : colors.textMuted }]}>
-          {favorited ? '♥' : '♡'}
-        </Text>
+        <Ionicons
+          name={favorited ? 'heart' : 'heart-outline'}
+          size={26}
+          color={favorited ? colors.accent : colors.textMuted}
+        />
       </Pressable>
     </View>
   );
@@ -64,10 +67,8 @@ const styles = StyleSheet.create({
   heartHit: {
     width: 44,
     height: 44,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  heart: {
-    fontSize: 26,
   },
 });

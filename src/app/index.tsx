@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PlaybackControls } from '@/components/player/playback-controls';
+import { PlaybackControls, type PlayMode } from '@/components/player/playback-controls';
 import { PlayerHeader } from '@/components/player/player-header';
 import { SongInformation } from '@/components/player/song-information';
 import { VinylRecord } from '@/components/player/vinyl-record';
@@ -11,7 +11,7 @@ import { MOCK_TRACK, MOCK_WAVEFORM_PEAKS } from '@/constants/mock-player';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/store/theme-provider';
 
-type RepeatMode = 'off' | 'all' | 'one';
+const PLAY_MODE_ORDER: PlayMode[] = ['shuffle', 'all', 'one'];
 
 export default function NowPlayingScreen() {
   const { colors } = useTheme();
@@ -19,15 +19,13 @@ export default function NowPlayingScreen() {
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [favorited, setFavorited] = useState(false);
-  const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState<RepeatMode>('off');
+  const [playMode, setPlayMode] = useState<PlayMode>('all');
   const [progress, setProgress] = useState(0.28);
 
-  const cycleRepeat = () => {
-    setRepeat((current) => {
-      if (current === 'off') return 'all';
-      if (current === 'all') return 'one';
-      return 'off';
+  const cyclePlayMode = () => {
+    setPlayMode((current) => {
+      const index = PLAY_MODE_ORDER.indexOf(current);
+      return PLAY_MODE_ORDER[(index + 1) % PLAY_MODE_ORDER.length];
     });
   };
 
@@ -38,7 +36,7 @@ export default function NowPlayingScreen() {
         {
           backgroundColor: colors.canvas,
           paddingTop: insets.top,
-          paddingBottom: Math.max(insets.bottom, Spacing.three),
+          paddingBottom: Math.max(insets.bottom, Spacing.two),
         },
       ]}
     >
@@ -48,30 +46,30 @@ export default function NowPlayingScreen() {
         <VinylRecord isPlaying={isPlaying} />
       </View>
 
-      <SongInformation
-        title={MOCK_TRACK.title}
-        artist={MOCK_TRACK.artist}
-        favorited={favorited}
-        onToggleFavorite={() => setFavorited((value) => !value)}
-      />
+      <View style={styles.lower}>
+        <SongInformation
+          title={MOCK_TRACK.title}
+          artist={MOCK_TRACK.artist}
+          favorited={favorited}
+          onToggleFavorite={() => setFavorited((value) => !value)}
+        />
 
-      <WaveformSeekbar
-        peaks={MOCK_WAVEFORM_PEAKS}
-        progress={progress}
-        durationMs={MOCK_TRACK.durationMs}
-        onSeek={setProgress}
-      />
+        <WaveformSeekbar
+          peaks={MOCK_WAVEFORM_PEAKS}
+          progress={progress}
+          durationMs={MOCK_TRACK.durationMs}
+          onSeek={setProgress}
+        />
 
-      <PlaybackControls
-        isPlaying={isPlaying}
-        shuffle={shuffle}
-        repeat={repeat}
-        onTogglePlay={() => setIsPlaying((value) => !value)}
-        onPrevious={() => setProgress(0)}
-        onNext={() => setProgress(0)}
-        onToggleShuffle={() => setShuffle((value) => !value)}
-        onCycleRepeat={cycleRepeat}
-      />
+        <PlaybackControls
+          isPlaying={isPlaying}
+          playMode={playMode}
+          onTogglePlay={() => setIsPlaying((value) => !value)}
+          onPrevious={() => setProgress(0)}
+          onNext={() => setProgress(0)}
+          onCyclePlayMode={cyclePlayMode}
+        />
+      </View>
     </View>
   );
 }
@@ -79,14 +77,18 @@ export default function NowPlayingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    justifyContent: 'space-between',
-    gap: Spacing.three,
-    paddingBottom: Spacing.three,
+    justifyContent: 'flex-start',
+    gap: Spacing.two,
   },
   vinylBlock: {
     alignItems: 'center',
-    justifyContent: 'center',
-    flexGrow: 1,
-    paddingVertical: Spacing.two,
+    marginTop: Spacing.one,
+    marginBottom: Spacing.one,
+    height: 500,
+    paddingTop: Spacing.six,
+  },
+  lower: {
+    gap: Spacing.three,
+    paddingBottom: Spacing.one,
   },
 });
