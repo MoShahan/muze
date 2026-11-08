@@ -1,4 +1,6 @@
-import { router } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
@@ -6,12 +8,32 @@ import { NeoCard } from '@/components/ui/neo-card';
 import { NeoSurface } from '@/components/ui/neo-surface';
 import { Screen } from '@/components/ui/screen';
 import { Radius, Spacing } from '@/constants/theme';
+import { DEFAULT_DISPLAY_NAME, getDisplayName } from '@/lib/db/settings';
+import { formatHomeGreeting } from '@/lib/greeting';
 
 export default function HomeScreen() {
+  const db = useSQLiteContext();
+  const [greeting, setGreeting] = useState(formatHomeGreeting(DEFAULT_DISPLAY_NAME));
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void (async () => {
+        const name = await getDisplayName(db);
+        if (!cancelled) {
+          setGreeting(formatHomeGreeting(name));
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [db]),
+  );
+
   return (
     <Screen contentStyle={styles.content}>
       <View style={styles.header}>
-        <AppText variant="display">Muze</AppText>
+        <AppText variant="display">{greeting}</AppText>
         <AppText variant="subtitle" tone="secondary">
           Recently played, favorites, and jump-back-in will live here.
         </AppText>

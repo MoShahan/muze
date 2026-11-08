@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+import { DisplayNameField } from '@/components/settings/display-name-field';
 import { ThemePreferenceControl } from '@/components/settings/theme-preference-control';
 import { AppText } from '@/components/ui/app-text';
 import { NeoCard } from '@/components/ui/neo-card';
@@ -22,7 +23,7 @@ export default function SettingsScreen() {
         <AppText variant="section" tone="muted">
           Profile
         </AppText>
-        <SettingsRow title="Display name" detail="Melophile" hint="Used in the Home greeting" />
+        <DisplayNameField />
       </View>
 
       <View style={styles.section}>

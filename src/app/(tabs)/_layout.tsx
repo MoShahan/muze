@@ -8,31 +8,35 @@ export default function TabsLayout() {
   return (
     <NativeTabs
       backgroundColor={colors.surface}
-      tintColor={colors.accent}
-      iconColor={colors.textMuted}
-      labelStyle={{ color: colors.textMuted }}
-      indicatorColor={colors.accent}
+      // Indicator pill must contrast with selected icon color (same color = invisible icon).
+      indicatorColor={colors.backgroundSelected}
+      iconColor={{
+        default: colors.textMuted,
+        selected: colors.accent,
+      }}
+      labelVisibilityMode="unlabeled"
+      rippleColor={colors.overlay}
     >
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="index" accessibilityLabel="Home">
+        <NativeTabs.Trigger.Label hidden>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="library">
-        <NativeTabs.Trigger.Label>Library</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="library" accessibilityLabel="Library">
+        <NativeTabs.Trigger.Label hidden>Library</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'music.note.list', selected: 'music.note.list' }}
           md="library_music"
         />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="playlists">
-        <NativeTabs.Trigger.Label>Playlists</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="playlists" accessibilityLabel="Playlists">
+        <NativeTabs.Trigger.Label hidden>Playlists</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'list.bullet', selected: 'list.bullet' }}
           md="queue_music"
         />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="settings">
-        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="settings" accessibilityLabel="Settings">
+        <NativeTabs.Trigger.Label hidden>Settings</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'gearshape', selected: 'gearshape.fill' }}
           md="settings"

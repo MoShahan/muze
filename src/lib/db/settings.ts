@@ -1,8 +1,11 @@
 import type { ThemePreference } from '@/constants/theme';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+export const DEFAULT_DISPLAY_NAME = 'Melophile';
+
 export const SETTINGS_KEYS = {
   themePreference: 'theme_preference',
+  displayName: 'display_name',
 } as const;
 
 const THEME_PREFERENCES = new Set<ThemePreference>(['system', 'light', 'dark']);
@@ -36,4 +39,14 @@ export async function setThemePreference(
   preference: ThemePreference,
 ): Promise<void> {
   await setSetting(db, SETTINGS_KEYS.themePreference, preference);
+}
+
+export async function getDisplayName(db: SQLiteDatabase): Promise<string> {
+  const value = await getSetting(db, SETTINGS_KEYS.displayName);
+  const trimmed = value?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : DEFAULT_DISPLAY_NAME;
+}
+
+export async function setDisplayName(db: SQLiteDatabase, name: string): Promise<void> {
+  await setSetting(db, SETTINGS_KEYS.displayName, name.trim());
 }
