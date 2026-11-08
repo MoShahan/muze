@@ -1,9 +1,11 @@
+import { useSQLiteContext } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { createContext, use, useEffect, useState, type PropsWithChildren } from 'react';
 import { useColorScheme as useSystemColorScheme } from 'react-native';
 
 import { Colors, type ThemeColors, type ThemeName, type ThemePreference } from '@/constants/theme';
+import { getThemePreference, setThemePreference } from '@/lib/db/settings';
 
 type ThemeContextValue = {
   preference: ThemePreference;
@@ -16,8 +18,27 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: PropsWithChildren) {
+  const db = useSQLiteContext();
   const systemScheme = useSystemColorScheme();
-  const [preference, setPreference] = useState<ThemePreference>('system');
+  const [preference, setPreferenceState] = useState<ThemePreference>('system');
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const stored = await getThemePreference(db);
+      if (!cancelled) {
+        setPreferenceState(stored);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [db]);
+
+  const setPreference = (next: ThemePreference) => {
+    setPreferenceState(next);
+    void setThemePreference(db, next);
+  };
 
   const theme: ThemeName =
     preference === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : preference;

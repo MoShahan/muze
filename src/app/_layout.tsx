@@ -23,7 +23,20 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.canvas },
       }}
     >
-      <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen
+        name="player"
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen name="search" />
+      <Stack.Screen name="album/[id]" />
+      <Stack.Screen name="artist/[id]" />
+      <Stack.Screen name="folder/[id]" />
+      <Stack.Screen name="playlist/[id]" />
     </Stack>
   );
 }
@@ -31,13 +44,13 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <DatabaseProvider>
+      <DatabaseProvider>
+        <ThemeProvider>
           <PlaybackProvider>
             <RootNavigator />
           </PlaybackProvider>
-        </DatabaseProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </DatabaseProvider>
     </GestureHandlerRootView>
   );
 }

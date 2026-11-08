@@ -13,7 +13,7 @@ import { useTheme } from '@/store/theme-provider';
 
 const PLAY_MODE_ORDER: PlayMode[] = ['shuffle', 'all', 'one'];
 
-export default function NowPlayingScreen() {
+export default function PlayerScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 

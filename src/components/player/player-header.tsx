@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -12,7 +14,21 @@ export function PlayerHeader({ title = 'NOW PLAYING' }: PlayerHeaderProps) {
 
   return (
     <View style={styles.row}>
-      <View style={styles.side} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        hitSlop={12}
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+            return;
+          }
+          router.replace('/');
+        }}
+        style={styles.side}
+      >
+        <Ionicons name="chevron-down" size={24} color={colors.textSecondary} />
+      </Pressable>
       <Text style={[styles.title, { color: colors.textMuted }]}>{title}</Text>
       <Pressable
         accessibilityRole="button"
@@ -20,7 +36,7 @@ export function PlayerHeader({ title = 'NOW PLAYING' }: PlayerHeaderProps) {
         hitSlop={12}
         style={styles.side}
       >
-        <Text style={[styles.menu, { color: colors.textSecondary }]}>...</Text>
+        <Ionicons name="ellipsis-horizontal" size={22} color={colors.textSecondary} />
       </Pressable>
     </View>
   );
@@ -43,10 +59,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 1.4,
-  },
-  menu: {
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 22,
   },
 });
