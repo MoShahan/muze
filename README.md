@@ -38,8 +38,11 @@ This project is linked to EAS as [@moshahan/muze](https://expo.dev/accounts/mosh
 # Development build (includes expo-dev-client)
 npx eas-cli build --platform android --profile development
 
-# Internal preview APK for personal install
+# Internal preview APK (no dev client)
 npx eas-cli build --platform android --profile preview
+
+# Personal release APK (sideload; not Play Store AAB)
+npx eas-cli build --platform android --profile production
 ```
 
 ### Install on your Android phone
