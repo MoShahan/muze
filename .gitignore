@@ -41,3 +41,10 @@ example
 # generated native folders
 /ios
 /android
+
+# local planning / prompts (not for remote)
+TODO.md
+docs/PROJECT_PLAN.md
+docs/PLAYER_DESIGN_PROMPT.md
+docs/MUZE_LOGO_PROMPT.md
+docs/design-idea/
