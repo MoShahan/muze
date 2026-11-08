@@ -72,6 +72,54 @@ export const Radius = {
   full: 9999,
 } as const;
 
+/** Shared type scale — prefer weight/color for hierarchy over many sizes. */
+export const Typography = {
+  display: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    lineHeight: 34,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '600' as const,
+    lineHeight: 28,
+  },
+  subtitle: {
+    fontSize: 15,
+    fontWeight: '400' as const,
+    lineHeight: 22,
+  },
+  body: {
+    fontSize: 16,
+    fontWeight: '400' as const,
+    lineHeight: 22,
+  },
+  bodyStrong: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    lineHeight: 22,
+  },
+  caption: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    lineHeight: 18,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    lineHeight: 18,
+  },
+  section: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    lineHeight: 16,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase' as const,
+  },
+} as const;
+
+export type TypographyVariant = keyof typeof Typography;
+
 /** Soft raised neo shadow: light top-left, dark bottom-right. */
 export const neoRaisedShadow = (colors: ThemeColors) =>
   ({

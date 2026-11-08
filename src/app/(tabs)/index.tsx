@@ -1,87 +1,65 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Spacing, neoRaisedShadow } from '@/constants/theme';
-import { useTheme } from '@/store/theme-provider';
+import { AppText } from '@/components/ui/app-text';
+import { NeoCard } from '@/components/ui/neo-card';
+import { NeoSurface } from '@/components/ui/neo-surface';
+import { Screen } from '@/components/ui/screen';
+import { Radius, Spacing } from '@/constants/theme';
 
 export default function HomeScreen() {
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-
   return (
-    <View
-      style={[
-        styles.screen,
-        {
-          backgroundColor: colors.canvas,
-          paddingTop: insets.top + Spacing.three,
-          paddingBottom: insets.bottom + Spacing.three,
-        },
-      ]}
-    >
-      <Text style={[styles.title, { color: colors.text }]}>Muze</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Recently played, favorites, and jump-back-in will live here.
-      </Text>
+    <Screen contentStyle={styles.content}>
+      <View style={styles.header}>
+        <AppText variant="display">Muze</AppText>
+        <AppText variant="subtitle" tone="secondary">
+          Recently played, favorites, and jump-back-in will live here.
+        </AppText>
+      </View>
+
+      <NeoCard>
+        <NeoCard.Title>Jump back in</NeoCard.Title>
+        <NeoCard.Subtitle>
+          Open the player preview while the library is still empty.
+        </NeoCard.Subtitle>
+      </NeoCard>
 
       <View style={styles.actions}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open now playing"
-          onPress={() => router.push('/player')}
-          style={[
-            styles.button,
-            { backgroundColor: colors.surfaceRaised },
-            neoRaisedShadow(colors),
-          ]}
-        >
-          <Text style={[styles.buttonText, { color: colors.text }]}>Open player</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open search"
-          onPress={() => router.push('/search')}
-          style={[
-            styles.button,
-            { backgroundColor: colors.surfaceRaised },
-            neoRaisedShadow(colors),
-          ]}
-        >
-          <Text style={[styles.buttonText, { color: colors.text }]}>Search</Text>
-        </Pressable>
+        <HomeAction label="Open player" onPress={() => router.push('/player')} />
+        <HomeAction label="Search" onPress={() => router.push('/search')} />
       </View>
-    </View>
+    </Screen>
+  );
+}
+
+type HomeActionProps = {
+  label: string;
+  onPress: () => void;
+};
+
+function HomeAction({ label, onPress }: HomeActionProps) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
+      <NeoSurface variant="raised" radius={Radius.lg} style={styles.action}>
+        <AppText variant="bodyStrong">{label}</AppText>
+      </NeoSurface>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
+  content: {
+    gap: Spacing.four,
+  },
+  header: {
     gap: Spacing.two,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
   actions: {
-    marginTop: Spacing.three,
     gap: Spacing.three,
   },
-  button: {
+  action: {
+    alignItems: 'center',
     paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.four,
-    borderRadius: 16,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

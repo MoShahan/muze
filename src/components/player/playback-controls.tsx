@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Spacing, neoRaisedShadow } from '@/constants/theme';
+import { AppText } from '@/components/ui/app-text';
+import { NeoIconButton } from '@/components/ui/neo-icon-button';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/store/theme-provider';
 
 export type PlayMode = 'shuffle' | 'all' | 'one';
@@ -34,25 +36,21 @@ export function PlaybackControls({
 }: PlaybackControlsProps) {
   const { colors } = useTheme();
   const mode = PLAY_MODE_META[playMode];
-  const modeColor = colors.accent;
 
   return (
     <View style={styles.row}>
-      <ControlButton
+      <NeoIconButton
         label="Previous track"
-        onPress={onPrevious}
         icon="play-skip-back"
         color={colors.textSecondary}
+        onPress={onPrevious}
+        variant="ghost"
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+      <NeoIconButton
+        label={isPlaying ? 'Pause' : 'Play'}
         onPress={onTogglePlay}
-        style={[
-          styles.playButton,
-          { backgroundColor: colors.surfaceRaised },
-          neoRaisedShadow(colors),
-        ]}
+        size="lg"
+        color={colors.text}
       >
         {isPlaying ? (
           <View style={styles.pauseIcon}>
@@ -62,12 +60,13 @@ export function PlaybackControls({
         ) : (
           <Ionicons name="play" size={28} color={colors.text} style={styles.playGlyph} />
         )}
-      </Pressable>
-      <ControlButton
+      </NeoIconButton>
+      <NeoIconButton
         label="Next track"
-        onPress={onNext}
         icon="play-skip-forward"
         color={colors.textSecondary}
+        onPress={onNext}
+        variant="ghost"
       />
       <Pressable
         accessibilityRole="button"
@@ -76,31 +75,14 @@ export function PlaybackControls({
         onPress={onCyclePlayMode}
         style={styles.sideButton}
       >
-        <Ionicons name={mode.icon} size={22} color={modeColor} />
-        {mode.showOne ? <Text style={[styles.oneBadge, { color: modeColor }]}>1</Text> : null}
+        <Ionicons name={mode.icon} size={22} color={colors.accent} />
+        {mode.showOne ? (
+          <AppText variant="caption" tone="accent" style={styles.oneBadge}>
+            1
+          </AppText>
+        ) : null}
       </Pressable>
     </View>
-  );
-}
-
-type ControlButtonProps = {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  onPress: () => void;
-};
-
-function ControlButton({ label, icon, color, onPress }: ControlButtonProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      hitSlop={8}
-      onPress={onPress}
-      style={styles.sideButton}
-    >
-      <Ionicons name={icon} size={22} color={color} />
-    </Pressable>
   );
 }
 
@@ -114,13 +96,6 @@ const styles = StyleSheet.create({
   sideButton: {
     width: 48,
     height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },

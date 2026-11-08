@@ -1,12 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import {
-  Radius,
-  Spacing,
-  neoPressedShadow,
-  neoRaisedShadow,
-  type ThemePreference,
-} from '@/constants/theme';
+import { AppText } from '@/components/ui/app-text';
+import { NeoSurface } from '@/components/ui/neo-surface';
+import { Radius, Spacing, type ThemePreference } from '@/constants/theme';
 import { useTheme } from '@/store/theme-provider';
 
 const OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -16,10 +12,10 @@ const OPTIONS: { value: ThemePreference; label: string }[] = [
 ];
 
 export function ThemePreferenceControl() {
-  const { colors, preference, setPreference } = useTheme();
+  const { preference, setPreference } = useTheme();
 
   return (
-    <View style={[styles.track, { backgroundColor: colors.surface }, neoRaisedShadow(colors)]}>
+    <NeoSurface variant="flat" radius={Radius.lg} style={styles.track}>
       {OPTIONS.map((option) => {
         const selected = preference === option.value;
         return (
@@ -29,41 +25,36 @@ export function ThemePreferenceControl() {
             accessibilityState={{ selected }}
             accessibilityLabel={`${option.label} theme`}
             onPress={() => setPreference(option.value)}
-            style={[
-              styles.option,
-              selected
-                ? [{ backgroundColor: colors.surfaceRaised }, neoPressedShadow(colors)]
-                : null,
-            ]}
+            style={styles.optionHit}
           >
-            <Text style={[styles.label, { color: selected ? colors.text : colors.textMuted }]}>
-              {option.label}
-            </Text>
+            <NeoSurface
+              variant={selected ? 'pressed' : 'flat'}
+              radius={Radius.md}
+              style={styles.option}
+            >
+              <AppText variant="label" tone={selected ? 'default' : 'muted'}>
+                {option.label}
+              </AppText>
+            </NeoSurface>
           </Pressable>
         );
       })}
-    </View>
+    </NeoSurface>
   );
 }
 
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    borderRadius: Radius.lg,
-    borderCurve: 'continuous',
     padding: Spacing.one,
     gap: Spacing.one,
   },
-  option: {
+  optionHit: {
     flex: 1,
+  },
+  option: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.three,
-    borderRadius: Radius.md,
-    borderCurve: 'continuous',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
   },
 });

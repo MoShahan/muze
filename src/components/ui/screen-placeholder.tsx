@@ -1,8 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet } from 'react-native';
 
+import { AppText } from '@/components/ui/app-text';
+import { NeoCard } from '@/components/ui/neo-card';
+import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/store/theme-provider';
 
 type ScreenPlaceholderProps = {
   title: string;
@@ -10,40 +11,22 @@ type ScreenPlaceholderProps = {
 };
 
 export function ScreenPlaceholder({ title, subtitle }: ScreenPlaceholderProps) {
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-
   return (
-    <View
-      style={[
-        styles.screen,
-        {
-          backgroundColor: colors.canvas,
-          paddingTop: insets.top + Spacing.three,
-          paddingBottom: insets.bottom + Spacing.three,
-        },
-      ]}
-    >
-      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+    <Screen contentStyle={styles.content}>
+      <AppText variant="display">{title}</AppText>
       {subtitle ? (
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+        <NeoCard>
+          <AppText variant="subtitle" tone="secondary">
+            {subtitle}
+          </AppText>
+        </NeoCard>
       ) : null}
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.two,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
+  content: {
+    gap: Spacing.three,
   },
 });
