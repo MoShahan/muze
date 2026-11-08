@@ -1,6 +1,9 @@
-# Welcome to your Expo app 👋
+# Muze
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A personal Android music player built with Expo. Muze scans and plays audio stored on the device; it does not copy music into the app.
+
+- See [Features.md](./Features.md) for current status, planned features, and optional future Google Play release steps.
+- See [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) for the detailed architecture and implementation plan.
 
 ## Get started
 
@@ -25,32 +28,32 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## EAS Build
 
-When you're ready, run:
+This project is linked to EAS as [@moshahan/muze](https://expo.dev/accounts/moshahan/projects/muze).
+
+### Create a build
 
 ```bash
-npm run reset-project
+# Development build (includes expo-dev-client)
+npx eas-cli build --platform android --profile development
+
+# Internal preview APK for personal install
+npx eas-cli build --platform android --profile preview
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+### Install on your Android phone
 
-### Other setup steps
+1. Wait until the build finishes on [expo.dev](https://expo.dev/accounts/moshahan/projects/muze/builds).
+2. Open the finished build page on your phone (same Expo account), or scan the QR code shown in the terminal / build page.
+3. Tap **Install** and allow installs from the browser if Android asks.
+4. Open **Muze** from the app drawer.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+You can also download the `.apk` from the build page on a computer, copy it to the phone, and open it to install.
+
+Optional later: after a production build, `npx eas-cli submit` can upload the app to app stores.
 
 ## Learn more
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [Expo documentation](https://docs.expo.dev/)
+- [Expo Router](https://docs.expo.dev/router/introduction/)
