@@ -1,13 +1,13 @@
-import { StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/store/theme-provider';
 
 export default function HomeScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+  const { colors } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       <Text style={[styles.title, { color: colors.text }]}>Muze</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Your music, on device.</Text>
     </View>

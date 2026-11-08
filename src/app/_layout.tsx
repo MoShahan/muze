@@ -1,15 +1,15 @@
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { DatabaseProvider } from '@/store/database-provider';
+import { PlaybackProvider } from '@/store/playback-provider';
+import { ThemeProvider, useTheme } from '@/store/theme-provider';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+function RootNavigator() {
+  const { colors } = useTheme();
 
   useEffect(() => {
     SplashScreen.hideAsync();
@@ -18,12 +18,25 @@ export default function RootLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
+        headerStyle: { backgroundColor: colors.canvas },
         headerTintColor: colors.text,
-        contentStyle: { backgroundColor: colors.background },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: colors.canvas },
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Muze' }} />
     </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <DatabaseProvider>
+        <PlaybackProvider>
+          <RootNavigator />
+        </PlaybackProvider>
+      </DatabaseProvider>
+    </ThemeProvider>
   );
 }
