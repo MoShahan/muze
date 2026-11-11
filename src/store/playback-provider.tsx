@@ -1,5 +1,7 @@
 import { createContext, use, useState, type PropsWithChildren } from 'react';
 
+import { MOCK_TRACK } from '@/constants/mock-player';
+
 export type RepeatMode = 'off' | 'all' | 'one';
 
 export type PlaybackTrack = {
@@ -9,6 +11,15 @@ export type PlaybackTrack = {
   album?: string;
   artworkUri?: string | null;
   durationMs?: number;
+};
+
+/** Visual-shell seed until Phase 4 wires real library playback / resume. */
+const SHELL_TRACK: PlaybackTrack = {
+  id: 'shell-mock',
+  title: MOCK_TRACK.title,
+  artist: MOCK_TRACK.artist,
+  album: MOCK_TRACK.album,
+  durationMs: MOCK_TRACK.durationMs,
 };
 
 type PlaybackContextValue = {
@@ -30,8 +41,8 @@ type PlaybackContextValue = {
 const PlaybackContext = createContext<PlaybackContextValue | null>(null);
 
 export function PlaybackProvider({ children }: PropsWithChildren) {
-  const [currentTrack, setCurrentTrack] = useState<PlaybackTrack | null>(null);
-  const [queue, setQueueState] = useState<string[]>([]);
+  const [currentTrack, setCurrentTrack] = useState<PlaybackTrack | null>(SHELL_TRACK);
+  const [queue, setQueueState] = useState<string[]>([SHELL_TRACK.id]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [positionMs, setPositionMs] = useState(0);

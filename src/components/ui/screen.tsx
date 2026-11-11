@@ -2,7 +2,9 @@ import { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { MINI_PLAYER_HEIGHT } from '@/components/player/mini-player';
 import { Spacing } from '@/constants/theme';
+import { usePlayback } from '@/store/playback-provider';
 import { useTheme } from '@/store/theme-provider';
 
 type ScreenProps = {
@@ -15,10 +17,12 @@ type ScreenProps = {
 export function Screen({ children, scroll = false, style, contentStyle }: ScreenProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { currentTrack } = usePlayback();
+  const miniPlayerPad = currentTrack ? MINI_PLAYER_HEIGHT + Spacing.three : 0;
 
   const padding = {
     paddingTop: insets.top + Spacing.three,
-    paddingBottom: insets.bottom + Spacing.five,
+    paddingBottom: insets.bottom + Spacing.five + miniPlayerPad,
     paddingHorizontal: Spacing.four,
   };
 
