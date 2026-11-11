@@ -15,13 +15,18 @@ Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
 ```bash
 npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
 npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
+npx expo lint               # lint — the only check to run after implementation tasks
+npx tsc --noEmit            # typecheck — batch for Final verification; do not run after every change
 npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
 ```
 
-Run lint and typecheck before declaring any task done.
+### Verification while implementing
+
+- After a task, run **lint only** (`npx expo lint`) if needed to catch issues from the change.
+- **Do not** run Jest / `npm test` / `npm run test:ci` after every change. Tests waste time and tokens mid-project; the human will run the full test suite once the project is complete (Final verification).
+- **Do not** run `tsc --noEmit` after every edit; batch typecheck for Final verification.
+- Do not write or expand feature test cases during implementation phases; batch that under Final verification in `TODO.md`.
 
 ## Navigation & Routing
 
