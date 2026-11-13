@@ -1,4 +1,5 @@
 import { AssetField, MediaType, Query } from 'expo-media-library';
+import { Platform } from 'react-native';
 
 import { folderPathFromUri } from '@/lib/media/folder-path';
 import {
@@ -15,7 +16,7 @@ export type ScannedAudioAsset = {
   id: string;
   uri: string;
   filename: string;
-  /** Duration in milliseconds (MediaLibrary reports seconds). */
+  /** Duration in milliseconds. */
   durationMs: number;
   /** Creation time in milliseconds, when available. */
   creationTimeMs: number | null;
@@ -83,16 +84,41 @@ export type ScanAudioLibraryOptions = {
 /** Default bounded page size for MediaLibrary queries. */
 export const SCAN_BATCH_SIZE = 50;
 
-function secondsToMs(value: number | null | undefined): number {
-  if (value == null || Number.isNaN(value)) {
+/**
+ * Skip very short clips (notifications, UI sounds, many ringtones).
+ * MediaLibrary `MediaType.AUDIO` is broader than a typical music app library.
+ */
+export const MIN_MUSIC_DURATION_SECONDS = 30;
+
+/**
+ * Expo docs say AssetInfo.duration is seconds, but the SDK 58 Android "next"
+ * media-library path returns MediaStore DURATION as raw milliseconds.
+ * Query filters on Android also compare against that same ms column.
+ */
+function mediaLibraryDurationToMs(value: number | null | undefined): number {
+  if (value == null || Number.isNaN(value) || value < 0) {
     return 0;
   }
-  return Math.max(0, Math.round(value * 1000));
+  if (Platform.OS === 'android') {
+    return Math.round(value);
+  }
+  // iOS / other: treat as seconds per docs.
+  return Math.round(value * 1000);
 }
 
-function optionalSecondsToMs(value: number | null | undefined): number | null {
+/** Minimum duration for Query.gte — Android MediaStore column is milliseconds. */
+function minMusicDurationQueryValue(): number {
+  return Platform.OS === 'android' ? MIN_MUSIC_DURATION_SECONDS * 1000 : MIN_MUSIC_DURATION_SECONDS;
+}
+
+function optionalEpochToMs(value: number | null | undefined): number | null {
   if (value == null || Number.isNaN(value)) {
     return null;
+  }
+  // Android next API: creationTime is MediaStore ms; modificationTime is already ms.
+  // Values that look like seconds (10-digit-ish below year 2001 in ms) get scaled.
+  if (Platform.OS === 'android') {
+    return Math.round(value);
   }
   return Math.round(value * 1000);
 }
@@ -128,6 +154,20 @@ function fromCachedRow(asset: RawScannedAudioAsset, cached: CachedTrackRow): Sca
 }
 
 /**
+ * True when cached mtime matches the asset. Also accepts the old double-scaled
+ * value (ms stored as ms*1000) so one bad conversion does not force a full re-parse.
+ */
+function sourceModifiedMatches(cached: number | null, asset: number | null): boolean {
+  if (cached === asset) {
+    return true;
+  }
+  if (cached != null && asset != null && cached === asset * 1000) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Re-parse when missing, uri changed, mtime changed, or cached artwork file was evicted.
  */
 export function shouldReparseTrack(
@@ -140,7 +180,7 @@ export function shouldReparseTrack(
   if (cached.uri !== asset.uri || cached.filename !== asset.filename) {
     return true;
   }
-  if (cached.sourceModifiedAt !== asset.modificationTimeMs) {
+  if (!sourceModifiedMatches(cached.sourceModifiedAt, asset.modificationTimeMs)) {
     return true;
   }
   if (cached.artworkPath && !artworkFileExists(cached.artworkPath)) {
@@ -169,27 +209,6 @@ function toUpsertInput(asset: ScannedAudioAsset): UpsertTrackInput {
   };
 }
 
-async function resolveFolderPath(
-  asset: { getAlbums: () => Promise<{ getTitle: () => Promise<string> }[]> },
-  uri: string,
-  filename: string,
-): Promise<string | null> {
-  const fromUri = folderPathFromUri(uri, filename);
-  if (fromUri) {
-    return fromUri;
-  }
-  try {
-    const albums = await asset.getAlbums();
-    if (albums[0]) {
-      const title = (await albums[0].getTitle()).trim();
-      return title.length > 0 ? title : null;
-    }
-  } catch {
-    // Album lookup is best-effort on opaque content:// URIs.
-  }
-  return null;
-}
-
 /**
  * Query one page of audio assets from the device media library.
  * Reuses SQLite-cached tags/art when the file is unchanged; otherwise re-parses
@@ -205,6 +224,7 @@ export async function queryAudioAssetPage(
 
   const assets = await new Query()
     .eq(AssetField.MEDIA_TYPE, MediaType.AUDIO)
+    .gte(AssetField.DURATION, minMusicDurationQueryValue())
     .orderBy({ key: AssetField.CREATION_TIME, ascending: false })
     .limit(limit)
     .offset(offset)
@@ -215,14 +235,15 @@ export async function queryAudioAssetPage(
   const page: RawScannedAudioAsset[] = await Promise.all(
     assets.map(async (asset) => {
       const info = await asset.getInfo();
-      const folderPath = await resolveFolderPath(asset, info.uri, info.filename);
+      // Prefer path-from-URI only during scan; album title lookup is expensive at scale.
+      const folderPath = folderPathFromUri(info.uri, info.filename);
       return {
         id: info.id,
         uri: info.uri,
         filename: info.filename,
-        durationMs: secondsToMs(info.duration),
-        creationTimeMs: optionalSecondsToMs(info.creationTime),
-        modificationTimeMs: optionalSecondsToMs(info.modificationTime),
+        durationMs: mediaLibraryDurationToMs(info.duration),
+        creationTimeMs: optionalEpochToMs(info.creationTime),
+        modificationTimeMs: optionalEpochToMs(info.modificationTime),
         folderPath,
       } satisfies RawScannedAudioAsset;
     }),
@@ -250,10 +271,11 @@ export async function queryAudioAssetPage(
 
   assertNotAborted(signal);
 
+  // Tags first (no cover decode) so batches stay responsive; art can be filled on demand later.
   const tagged = await parseTrackTagsBatch(toParse, {
     signal,
-    concurrency: 2,
-    includeArt: true,
+    concurrency: 3,
+    includeArt: false,
   });
 
   const parsedAssets: ScannedAudioAsset[] = [];
