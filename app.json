@@ -70,7 +70,40 @@
           "useSQLCipher": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "color": "#1C1E22",
+          "defaultChannel": "muze-playback"
+        }
+      ],
+      [
+        "expo-widgets",
+        {
+          "enableAndroid": true,
+          "bundleIdentifier": "com.moshahan.muze.widgets",
+          "groupIdentifier": "group.com.moshahan.muze",
+          "widgets": [
+            {
+              "name": "MuzeNowPlaying",
+              "displayName": "Muze",
+              "description": "Now playing controls for Muze",
+              "android": {
+                "minWidth": 250,
+                "minHeight": 110,
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "resizeMode": "horizontal",
+                "initialLayout": "./src/widgets/muze-now-playing.tsx"
+              }
+            }
+          ]
+        }
+      ],
+      "expo-status-bar",
+      "expo-font",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,
