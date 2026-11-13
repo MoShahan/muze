@@ -21,7 +21,7 @@ export default function AlbumDetailScreen() {
   const id = typeof rawId === 'string' ? decodeURIComponent(rawId) : '';
   const db = useSQLiteContext();
   const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
-  const { setCurrentTrack, setQueue } = usePlayback();
+  const { playTrack, setQueue } = usePlayback();
   const [album, setAlbum] = useState<AlbumRow | null>(null);
   const [tracks, setTracks] = useState<CachedTrackRow[]>([]);
   const [query, setQuery] = useState('');
@@ -78,7 +78,7 @@ export default function AlbumDetailScreen() {
         filteredTracks.length > 0 ? filteredTracks : tracks,
         startId,
         {
-          setCurrentTrack,
+          playTrack,
           setQueue,
         },
         { shuffle },
@@ -87,7 +87,7 @@ export default function AlbumDetailScreen() {
         router.push('/player');
       }
     },
-    [filteredTracks, tracks, setCurrentTrack, setQueue],
+    [filteredTracks, tracks, playTrack, setQueue],
   );
 
   const onPressTrack = useCallback(

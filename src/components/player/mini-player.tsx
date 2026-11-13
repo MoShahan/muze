@@ -18,7 +18,7 @@ type MiniPlayerProps = {
 
 export function MiniPlayer({ compact = false }: MiniPlayerProps) {
   const { colors } = useTheme();
-  const { currentTrack, isPlaying, setIsPlaying } = usePlayback();
+  const { currentTrack, isPlaying, togglePlayPause } = usePlayback();
 
   if (!currentTrack) {
     return null;
@@ -29,7 +29,7 @@ export function MiniPlayer({ compact = false }: MiniPlayerProps) {
   };
 
   const togglePlay = () => {
-    setIsPlaying(!isPlaying);
+    togglePlayPause();
   };
 
   if (compact) {

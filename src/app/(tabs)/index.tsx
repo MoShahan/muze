@@ -47,7 +47,7 @@ export default function SongsScreen() {
     revision: libraryRevision,
     query,
   });
-  const { setCurrentTrack, setQueue } = usePlayback();
+  const { playTrack, setQueue } = usePlayback();
   const [busy, setBusy] = useState(false);
   const didAutoRequest = useRef(false);
 
@@ -74,21 +74,24 @@ export default function SongsScreen() {
       if (!track) {
         return;
       }
-      setCurrentTrack({
-        id: track.id,
-        title: track.title,
-        artist: track.artist,
-        album: track.album,
-        artworkUri: track.artworkPath,
-        durationMs: track.durationMs,
-      });
-      setQueue(
-        filteredTracks.map((item) => item.id),
-        filteredTracks.findIndex((item) => item.id === id),
+      const queue = filteredTracks.map((item) => ({
+        id: item.id,
+        title: item.title,
+        artist: item.artist,
+        album: item.album,
+        artworkUri: item.artworkPath,
+        durationMs: item.durationMs,
+        uri: item.uri,
+      }));
+      const startIndex = Math.max(
+        0,
+        queue.findIndex((item) => item.id === id),
       );
+      setQueue(queue, startIndex);
+      playTrack(queue[startIndex]);
       router.push('/player');
     },
-    [filteredTracks, setCurrentTrack, setQueue],
+    [filteredTracks, playTrack, setQueue],
   );
 
   const renderItem = useCallback(

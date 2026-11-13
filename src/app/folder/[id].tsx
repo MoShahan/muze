@@ -18,7 +18,7 @@ export default function FolderDetailScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = typeof rawId === 'string' ? decodeURIComponent(rawId) : '';
   const db = useSQLiteContext();
-  const { setCurrentTrack, setQueue } = usePlayback();
+  const { playTrack, setQueue } = usePlayback();
   const [folder, setFolder] = useState<FolderRow | null>(null);
   const [tracks, setTracks] = useState<CachedTrackRow[]>([]);
   const [query, setQuery] = useState('');
@@ -71,12 +71,12 @@ export default function FolderDetailScreen() {
   const playFrom = useCallback(
     (startId: string | null, shuffle = false) => {
       const source = filteredTracks.length > 0 ? filteredTracks : tracks;
-      const ok = playTrackList(source, startId, { setCurrentTrack, setQueue }, { shuffle });
+      const ok = playTrackList(source, startId, { playTrack, setQueue }, { shuffle });
       if (ok) {
         router.push('/player');
       }
     },
-    [filteredTracks, tracks, setCurrentTrack, setQueue],
+    [filteredTracks, tracks, playTrack, setQueue],
   );
 
   const onPressTrack = useCallback(

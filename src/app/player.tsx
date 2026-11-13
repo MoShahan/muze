@@ -1,38 +1,44 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PlaybackControls, type PlayMode } from '@/components/player/playback-controls';
+import { PlaybackControls } from '@/components/player/playback-controls';
 import { PlayerHeader } from '@/components/player/player-header';
 import { SongInformation } from '@/components/player/song-information';
 import { VinylRecord } from '@/components/player/vinyl-record';
 import { WaveformSeekbar } from '@/components/player/waveform-seekbar';
-import { MOCK_TRACK, MOCK_WAVEFORM_PEAKS } from '@/constants/mock-player';
+import { MOCK_WAVEFORM_PEAKS } from '@/constants/mock-player';
 import { Spacing } from '@/constants/theme';
 import { usePlayback } from '@/store/playback-provider';
 import { useTheme } from '@/store/theme-provider';
 
-const PLAY_MODE_ORDER: PlayMode[] = ['shuffle', 'all', 'one'];
-
 export default function PlayerScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { currentTrack, isPlaying, setIsPlaying } = usePlayback();
+  const {
+    currentTrack,
+    isPlaying,
+    positionMs,
+    durationMs,
+    playMode,
+    togglePlayPause,
+    playNext,
+    playPrevious,
+    seekToMs,
+    cyclePlayMode,
+  } = usePlayback();
 
   const [favorited, setFavorited] = useState(false);
-  const [playMode, setPlayMode] = useState<PlayMode>('all');
-  const [progress, setProgress] = useState(0.28);
 
-  const title = currentTrack?.title ?? MOCK_TRACK.title;
-  const artist = currentTrack?.artist ?? MOCK_TRACK.artist;
-  const durationMs = currentTrack?.durationMs ?? MOCK_TRACK.durationMs;
-
-  const cyclePlayMode = () => {
-    setPlayMode((current) => {
-      const index = PLAY_MODE_ORDER.indexOf(current);
-      return PLAY_MODE_ORDER[(index + 1) % PLAY_MODE_ORDER.length];
-    });
-  };
+  const title = currentTrack?.title ?? 'No track';
+  const artist = currentTrack?.artist ?? 'Select a song to play';
+  const trackDurationMs = durationMs > 0 ? durationMs : (currentTrack?.durationMs ?? 0);
+  const progress = useMemo(() => {
+    if (trackDurationMs <= 0) {
+      return 0;
+    }
+    return Math.min(1, Math.max(0, positionMs / trackDurationMs));
+  }, [positionMs, trackDurationMs]);
 
   return (
     <View
@@ -62,16 +68,18 @@ export default function PlayerScreen() {
         <WaveformSeekbar
           peaks={MOCK_WAVEFORM_PEAKS}
           progress={progress}
-          durationMs={durationMs}
-          onSeek={setProgress}
+          durationMs={trackDurationMs}
+          onSeek={(nextProgress) => {
+            seekToMs(nextProgress * trackDurationMs);
+          }}
         />
 
         <PlaybackControls
           isPlaying={isPlaying}
           playMode={playMode}
-          onTogglePlay={() => setIsPlaying(!isPlaying)}
-          onPrevious={() => setProgress(0)}
-          onNext={() => setProgress(0)}
+          onTogglePlay={togglePlayPause}
+          onPrevious={playPrevious}
+          onNext={playNext}
           onCyclePlayMode={cyclePlayMode}
         />
       </View>

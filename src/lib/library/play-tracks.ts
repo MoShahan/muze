@@ -1,12 +1,14 @@
+import { shuffleTracksKeepingCurrent } from '@/lib/library/playback-queue';
+
 import type { CachedTrackRow } from '@/lib/db/tracks';
 import type { PlaybackTrack } from '@/store/playback-provider';
 
 type PlaybackSetters = {
-  setCurrentTrack: (track: PlaybackTrack | null) => void;
-  setQueue: (trackIds: string[], startIndex?: number) => void;
+  playTrack: (track: PlaybackTrack) => void;
+  setQueue: (tracks: PlaybackTrack[], startIndex?: number) => void;
 };
 
-function toPlaybackTrack(track: CachedTrackRow): PlaybackTrack {
+export function toPlaybackTrack(track: CachedTrackRow): PlaybackTrack {
   return {
     id: track.id,
     title: track.title,
@@ -14,21 +16,11 @@ function toPlaybackTrack(track: CachedTrackRow): PlaybackTrack {
     album: track.album,
     artworkUri: track.artworkPath,
     durationMs: track.durationMs,
+    uri: track.uri,
   };
 }
 
-function shuffleIds(ids: string[]): string[] {
-  const next = [...ids];
-  for (let i = next.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const tmp = next[i];
-    next[i] = next[j];
-    next[j] = tmp;
-  }
-  return next;
-}
-
-/** Queue tracks into the playback shell (real audio wiring is Phase 4). */
+/** Queue tracks and start real playback of the selected (or first) track. */
 export function playTrackList(
   tracks: CachedTrackRow[],
   startId: string | null,
@@ -39,18 +31,15 @@ export function playTrackList(
     return false;
   }
 
-  const ids = tracks.map((track) => track.id);
-  const queueIds = options?.shuffle ? shuffleIds(ids) : ids;
-  const startIndex =
-    startId != null
-      ? Math.max(
-          0,
-          queueIds.findIndex((id) => id === startId),
-        )
-      : 0;
-  const current = tracks.find((track) => track.id === queueIds[startIndex]) ?? tracks[0];
+  const playbackTracks = tracks.map(toPlaybackTrack);
+  const queueTracks = options?.shuffle
+    ? shuffleTracksKeepingCurrent(playbackTracks, startId)
+    : playbackTracks;
+  const foundIndex = startId != null ? queueTracks.findIndex((track) => track.id === startId) : 0;
+  const startIndex = foundIndex >= 0 ? foundIndex : 0;
+  const current = queueTracks[startIndex] ?? queueTracks[0];
 
-  setters.setCurrentTrack(toPlaybackTrack(current));
-  setters.setQueue(queueIds, startIndex);
+  setters.setQueue(queueTracks, startIndex);
+  setters.playTrack(current);
   return true;
 }

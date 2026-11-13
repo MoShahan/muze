@@ -27,7 +27,7 @@ export default function ArtistDetailScreen() {
   const id = typeof rawId === 'string' ? decodeURIComponent(rawId) : '';
   const db = useSQLiteContext();
   const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
-  const { setCurrentTrack, setQueue } = usePlayback();
+  const { playTrack, setQueue } = usePlayback();
   const [artist, setArtist] = useState<ArtistRow | null>(null);
   const [albums, setAlbums] = useState<AlbumRow[]>([]);
   const [tracks, setTracks] = useState<CachedTrackRow[]>([]);
@@ -113,12 +113,12 @@ export default function ArtistDetailScreen() {
           matchesLibraryQuery(track.artist, query),
       );
       const source = filtered.length > 0 ? filtered : tracks;
-      const ok = playTrackList(source, startId, { setCurrentTrack, setQueue }, { shuffle });
+      const ok = playTrackList(source, startId, { playTrack, setQueue }, { shuffle });
       if (ok) {
         router.push('/player');
       }
     },
-    [tracks, query, setCurrentTrack, setQueue],
+    [tracks, query, playTrack, setQueue],
   );
 
   const onPressTrack = useCallback(
