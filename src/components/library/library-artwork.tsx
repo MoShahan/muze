@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { NeoSurface } from '@/components/ui/neo-surface';
 import { Radius } from '@/constants/theme';
+import { artworkDisplayUri } from '@/lib/db/tracks';
 import { useTheme } from '@/store/theme-provider';
 
 type LibraryArtworkProps = {
@@ -15,8 +16,9 @@ type LibraryArtworkProps = {
 export function LibraryArtwork({ uri, size, round = false }: LibraryArtworkProps) {
   const { colors } = useTheme();
   const radius = round ? size / 2 : Radius.md;
+  const displayUri = artworkDisplayUri(uri);
 
-  if (!uri) {
+  if (!displayUri) {
     return (
       <NeoSurface
         variant="pressed"
@@ -29,10 +31,10 @@ export function LibraryArtwork({ uri, size, round = false }: LibraryArtworkProps
   return (
     <View style={[styles.frame, { width: size, height: size, borderRadius: radius }]}>
       <Image
-        source={{ uri }}
+        source={{ uri: displayUri }}
         style={{ width: size, height: size, borderRadius: radius }}
         contentFit="cover"
-        recyclingKey={uri}
+        recyclingKey={displayUri}
         transition={120}
       />
     </View>

@@ -104,7 +104,7 @@ export async function rebuildLibraryGroups(db: SQLiteDatabase): Promise<LibraryC
     const existingAlbum = albums.get(albumId);
     if (existingAlbum) {
       existingAlbum.trackCount += 1;
-      if (!existingAlbum.artworkPath && track.artwork_path) {
+      if (!existingAlbum.artworkPath && track.artwork_path && track.artwork_path.length > 0) {
         existingAlbum.artworkPath = track.artwork_path;
       }
     } else {
@@ -112,7 +112,8 @@ export async function rebuildLibraryGroups(db: SQLiteDatabase): Promise<LibraryC
         id: albumId,
         title: track.album,
         artist: albumArtist,
-        artworkPath: track.artwork_path,
+        artworkPath:
+          track.artwork_path && track.artwork_path.length > 0 ? track.artwork_path : null,
         trackCount: 1,
       });
     }

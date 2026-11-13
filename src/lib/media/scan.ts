@@ -183,7 +183,11 @@ export function shouldReparseTrack(
   if (!sourceModifiedMatches(cached.sourceModifiedAt, asset.modificationTimeMs)) {
     return true;
   }
-  if (cached.artworkPath && !artworkFileExists(cached.artworkPath)) {
+  // null = never extracted (older scans skipped covers). '' = checked, no embedded art.
+  if (cached.artworkPath === null) {
+    return true;
+  }
+  if (cached.artworkPath.length > 0 && !artworkFileExists(cached.artworkPath)) {
     return true;
   }
   return false;
@@ -271,23 +275,27 @@ export async function queryAudioAssetPage(
 
   assertNotAborted(signal);
 
-  // Tags first (no cover decode) so batches stay responsive; art can be filled on demand later.
+  // Include covers so list circles / albums get cached JPEG thumbnails.
   const tagged = await parseTrackTagsBatch(toParse, {
     signal,
-    concurrency: 3,
-    includeArt: false,
+    concurrency: 2,
+    includeArt: true,
   });
 
   const parsedAssets: ScannedAudioAsset[] = [];
   for (const item of tagged) {
     assertNotAborted(signal);
     const previous = cachedMap.get(item.id);
-    let artworkPath: string | null = null;
+    // '' means "parsed, no embedded art" so we do not re-extract forever.
+    let artworkPath: string | null = '';
 
     if (item.tags.art) {
-      artworkPath = await cacheResizedAlbumArt(item.id, item.tags.art);
+      artworkPath = (await cacheResizedAlbumArt(item.id, item.tags.art)) ?? '';
       // Drop raw picture bytes ASAP after caching.
       item.tags.art = null;
+      if (!artworkPath && previous?.artworkPath) {
+        deleteCachedAlbumArt(previous.artworkPath);
+      }
     } else if (previous?.artworkPath) {
       deleteCachedAlbumArt(previous.artworkPath);
     }

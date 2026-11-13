@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { NeoSurface } from '@/components/ui/neo-surface';
 import { Radius, Spacing } from '@/constants/theme';
+import { artworkDisplayUri } from '@/lib/db/tracks';
 import { usePlayback } from '@/store/playback-provider';
 import { useTheme } from '@/store/theme-provider';
 
@@ -23,6 +24,8 @@ export function MiniPlayer({ compact = false }: MiniPlayerProps) {
   if (!currentTrack) {
     return null;
   }
+
+  const artUri = artworkDisplayUri(currentTrack.artworkUri);
 
   const openPlayer = () => {
     router.push('/player');
@@ -55,12 +58,8 @@ export function MiniPlayer({ compact = false }: MiniPlayerProps) {
         style={styles.mainHit}
       >
         <View style={[styles.art, { backgroundColor: colors.surfacePressed }]}>
-          {currentTrack.artworkUri ? (
-            <Image
-              source={{ uri: currentTrack.artworkUri }}
-              style={styles.artImage}
-              contentFit="cover"
-            />
+          {artUri ? (
+            <Image source={{ uri: artUri }} style={styles.artImage} contentFit="cover" />
           ) : (
             <Ionicons name="musical-note" size={18} color={colors.textMuted} />
           )}

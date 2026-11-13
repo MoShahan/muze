@@ -13,7 +13,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { finalizeLibraryScan, getLibraryCounts, type LibraryCounts } from '@/lib/db/library';
-import { getCachedTracksByIds, upsertTracks } from '@/lib/db/tracks';
+import { countTracksMissingArtwork, getCachedTracksByIds, upsertTracks } from '@/lib/db/tracks';
 import { scanAudioLibrary, type AudioScanProgress } from '@/lib/media/scan';
 
 type ScanStatus = 'idle' | 'scanning' | 'ready' | 'error';
@@ -143,8 +143,14 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
         return;
       }
 
-      // Cached library: show immediately. Full MediaStore walk is pull-to-refresh / rescan only.
-      if (counts.tracks > 0) {
+      const missingArtwork = counts.tracks > 0 ? await countTracksMissingArtwork(dbRef.current) : 0;
+      if (cancelled) {
+        return;
+      }
+
+      // Cached library with covers already extracted: show immediately.
+      // Missing artwork_path (null from older scans) triggers one backfill walk.
+      if (counts.tracks > 0 && missingArtwork === 0) {
         setLibraryCounts(counts);
         setStatus('ready');
         setLibraryRevision((value) => value + 1);

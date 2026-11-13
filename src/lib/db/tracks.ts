@@ -70,12 +70,29 @@ export function mapTrackRow(row: TrackDbRow): CachedTrackRow {
     year: row.year,
     genre: row.genre,
     durationMs: row.duration_ms,
+    // Preserve null (never extracted) vs '' (checked, no art) for scan reparse logic.
     artworkPath: row.artwork_path,
     folderPath: row.folder_path,
     dateAdded: row.date_added,
     sourceModifiedAt: row.source_modified_at,
     updatedAt: row.updated_at,
   };
+}
+
+/** Display URI for expo-image; treats empty string as missing. */
+export function artworkDisplayUri(path: string | null | undefined): string | null {
+  if (!path) {
+    return null;
+  }
+  if (
+    path.startsWith('file://') ||
+    path.startsWith('content://') ||
+    path.startsWith('http://') ||
+    path.startsWith('https://')
+  ) {
+    return path;
+  }
+  return `file://${path}`;
 }
 
 /** Load cached track rows for the given MediaStore ids. */
@@ -120,6 +137,14 @@ export async function listTracks(db: SQLiteDatabase): Promise<CachedTrackRow[]> 
      ORDER BY title COLLATE NOCASE ASC, artist COLLATE NOCASE ASC`,
   );
   return rows.map(mapTrackRow);
+}
+
+/** Tracks that still need cover extraction (`artwork_path IS NULL`). */
+export async function countTracksMissingArtwork(db: SQLiteDatabase): Promise<number> {
+  const row = await db.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM tracks WHERE artwork_path IS NULL`,
+  );
+  return row?.count ?? 0;
 }
 
 /** Album tracks ordered by disc track number when present. */

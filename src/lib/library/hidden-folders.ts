@@ -49,7 +49,7 @@ export function albumsFromTracks(tracks: CachedTrackRow[]): AlbumRow[] {
     const existing = albums.get(id);
     if (existing) {
       existing.trackCount += 1;
-      if (!existing.artworkPath && track.artworkPath) {
+      if (!existing.artworkPath && track.artworkPath && track.artworkPath.length > 0) {
         existing.artworkPath = track.artworkPath;
       }
     } else {
