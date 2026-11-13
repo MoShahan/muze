@@ -6,7 +6,7 @@ Muze is a personal Android music player built with Expo. It scans and plays audi
 
 ### Music library
 
-- Scan device audio files and browse on dedicated **Songs**, **Albums**, **Artists**, and **Playlists** screens (Songs is the default tab; no Home tab). Folder browsing remains available via a stack route.
+- Scan device audio files and browse on dedicated **Songs**, **Albums**, **Artists**, and **Playlists** screens (Songs is the default tab; no Home tab). On Playlists, order is Folders, then Favorites, then custom playlists (Folders opens a stack route).
 - Edit track details with separate fields: disk **filename** (renames the file on storage) vs embedded **metadata** (title, artist, album, album artist, track number, year, genre). Changing the title does not rename the file; renaming the file does not change the title tag.
 - Both filename rename and metadata edit are supported and independent.
 - Delete audio files after confirmation and required Android system approval.
