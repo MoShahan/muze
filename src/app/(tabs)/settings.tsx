@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AudioPermissionControl } from '@/components/settings/audio-permission-control';
 import { DisplayNameField } from '@/components/settings/display-name-field';
+import { FlacVerifyControl } from '@/components/settings/flac-verify-control';
 import { ThemePreferenceControl } from '@/components/settings/theme-preference-control';
 import { AppText } from '@/components/ui/app-text';
 import { NeoCard } from '@/components/ui/neo-card';
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
         </AppText>
         <SettingsRow title="Rescan library" detail="Coming soon" />
         <AudioPermissionControl />
+        <FlacVerifyControl />
       </View>
 
       <View style={styles.section}>

@@ -4,8 +4,14 @@ import { parseBuffer } from 'music-metadata';
 export const UNKNOWN_ARTIST = 'Unknown Artist';
 export const UNKNOWN_ALBUM = 'Unknown Album';
 
-/** How many leading bytes to read for tag parsing (avoids loading whole FLACs). */
+/** Default header read for text tags (avoids loading whole FLACs). */
 export const TAG_HEADER_MAX_BYTES = 512 * 1024;
+
+/**
+ * Larger window for FLAC when detecting METADATA_BLOCK_PICTURE —
+ * embedded art often sits in early blocks but can exceed 512KB.
+ */
+export const FLAC_ART_HEADER_MAX_BYTES = 4 * 1024 * 1024;
 
 export type ParsedTrackTags = {
   title: string;
@@ -15,6 +21,19 @@ export type ParsedTrackTags = {
   trackNumber: number | null;
   year: number | null;
   genre: string | null;
+};
+
+export type ParsedTrackTagsDetailed = ParsedTrackTags & {
+  container: string | null;
+  tagTypes: string[];
+  hasEmbeddedArt: boolean;
+  /** Picture summary only — raw bytes are not retained. */
+  art: { format: string; byteLength: number } | null;
+};
+
+export type ParseTrackTagsOptions = {
+  /** When true, parse cover art (uses a larger read for FLAC). */
+  includeArt?: boolean;
 };
 
 const EXT_MIME: Record<string, string> = {
@@ -44,6 +63,10 @@ function extensionOf(filename: string): string | null {
     return null;
   }
   return filename.slice(dot + 1).toLowerCase();
+}
+
+export function isFlacFilename(filename: string): boolean {
+  return extensionOf(filename) === 'flac';
 }
 
 function mimeFromFilename(filename: string): string | undefined {
@@ -97,10 +120,10 @@ function mergeWithFallbacks(filename: string, partial: Partial<ParsedTrackTags>)
   };
 }
 
-async function readTagHeaderBytes(uri: string): Promise<Uint8Array> {
+async function readTagHeaderBytes(uri: string, maxBytes: number): Promise<Uint8Array> {
   const info = await getInfoAsync(uri);
-  const size = info.exists ? info.size : TAG_HEADER_MAX_BYTES;
-  const length = Math.min(Math.max(size, 0), TAG_HEADER_MAX_BYTES);
+  const size = info.exists ? info.size : maxBytes;
+  const length = Math.min(Math.max(size, 0), maxBytes);
 
   if (length === 0) {
     return new Uint8Array();
@@ -115,26 +138,43 @@ async function readTagHeaderBytes(uri: string): Promise<Uint8Array> {
   return base64ToUint8Array(base64);
 }
 
+function emptyDetailed(filename: string): ParsedTrackTagsDetailed {
+  return {
+    ...tagsFromFilename(filename),
+    container: null,
+    tagTypes: [],
+    hasEmbeddedArt: false,
+    art: null,
+  };
+}
+
 /**
- * Parse embedded tags from a device audio URI.
+ * Parse embedded tags (and optionally album art) from a device audio URI.
  * On failure or empty tags, falls back to filename / Unknown Artist / Unknown Album.
  */
-export async function parseTrackTags(uri: string, filename: string): Promise<ParsedTrackTags> {
-  const fallback = tagsFromFilename(filename);
+export async function parseTrackTagsDetailed(
+  uri: string,
+  filename: string,
+  options: ParseTrackTagsOptions = {},
+): Promise<ParsedTrackTagsDetailed> {
+  const includeArt = options.includeArt === true;
+  const fallback = emptyDetailed(filename);
+  const maxBytes =
+    includeArt && isFlacFilename(filename) ? FLAC_ART_HEADER_MAX_BYTES : TAG_HEADER_MAX_BYTES;
 
   try {
-    const bytes = await readTagHeaderBytes(uri);
+    const bytes = await readTagHeaderBytes(uri, maxBytes);
     if (bytes.byteLength === 0) {
       return fallback;
     }
 
     const metadata = await parseBuffer(bytes, mimeFromFilename(filename), {
       duration: false,
-      skipCovers: true,
+      skipCovers: !includeArt,
     });
 
     const common = metadata.common;
-    return mergeWithFallbacks(filename, {
+    const tags = mergeWithFallbacks(filename, {
       title: common.title,
       artist: firstNonEmpty(common.artist, common.artists?.join(', ')) ?? undefined,
       album: common.album,
@@ -143,10 +183,42 @@ export async function parseTrackTags(uri: string, filename: string): Promise<Par
       year: typeof common.year === 'number' ? common.year : null,
       genre: firstNonEmpty(common.genre?.[0]) ?? undefined,
     });
+
+    const picture = includeArt ? (common.picture?.[0] ?? null) : null;
+    const art =
+      picture && picture.data.byteLength > 0
+        ? { format: picture.format, byteLength: picture.data.byteLength }
+        : null;
+
+    return {
+      ...tags,
+      container: metadata.format.container ?? null,
+      tagTypes: metadata.format.tagTypes ?? [],
+      hasEmbeddedArt: art != null,
+      art,
+    };
   } catch {
     // Hermes / unreadable content:// / unsupported format → safe fallbacks.
     return fallback;
   }
+}
+
+export async function parseTrackTags(uri: string, filename: string): Promise<ParsedTrackTags> {
+  const detailed = await parseTrackTagsDetailed(uri, filename, { includeArt: false });
+  return {
+    title: detailed.title,
+    artist: detailed.artist,
+    album: detailed.album,
+    albumArtist: detailed.albumArtist,
+    trackNumber: detailed.trackNumber,
+    year: detailed.year,
+    genre: detailed.genre,
+  };
+}
+
+/** True when music-metadata reported Vorbis comments (typical for FLAC). */
+export function hasVorbisTags(tagTypes: string[]): boolean {
+  return tagTypes.some((type) => type.toLowerCase().includes('vorbis'));
 }
 
 /** Parse tags for a batch with limited concurrency to avoid memory spikes. */
