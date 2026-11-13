@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 320" role="img" aria-label="MUZE">
+  <rect width="920" height="320" fill="#F1EFE9" />
+  <g transform="translate(24,0) scale(0.88)" color="#202329">
+  <g fill="none" stroke="currentColor" stroke-width="37.76" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 101.76 225.60 L 101.76 93.44" />
+    <path d="M 218.24 225.60 L 218.24 93.44" />
+    <path d="M 101.76 93.44 Q 126.40 107.20 160.00 161.60 Q 193.60 107.20 218.24 93.44" />
+  </g>
+  <circle cx="101.76" cy="225.60" r="27.19" fill="currentColor" />
+  <circle cx="218.24" cy="225.60" r="27.19" fill="currentColor" />
+  </g>
+  <text x="360" y="210" fill="#202329" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="132" font-weight="600" letter-spacing="18">UZE</text>
+</svg>

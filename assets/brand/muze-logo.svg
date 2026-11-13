@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Muze">
+  <g color="#202329">
+  <g fill="none" stroke="currentColor" stroke-width="120.83" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 325.63 721.92 L 325.63 299.01" />
+    <path d="M 698.37 721.92 L 698.37 299.01" />
+    <path d="M 325.63 299.01 Q 404.48 343.04 512.00 517.12 Q 619.52 343.04 698.37 299.01" />
+  </g>
+  <circle cx="325.63" cy="721.92" r="87.00" fill="currentColor" />
+  <circle cx="698.37" cy="721.92" r="87.00" fill="currentColor" />
+  </g>
+</svg>
