@@ -15,9 +15,10 @@ import { useAudioLibraryScan } from '@/hooks/use-audio-library-scan';
 export default function SongsScreen() {
   const { isLoading, isGranted, isUndetermined, canAskAgain, request, openSettings } =
     useAudioLibraryPermission();
-  const { status, count, batchIndex, errorMessage, isScanning, rescan } = useAudioLibraryScan({
-    enabled: isGranted,
-  });
+  const { status, count, batchIndex, sampleTitles, errorMessage, isScanning, rescan } =
+    useAudioLibraryScan({
+      enabled: isGranted,
+    });
   const [busy, setBusy] = useState(false);
   const didAutoRequest = useRef(false);
 
@@ -79,9 +80,14 @@ export default function SongsScreen() {
               {status === 'error'
                 ? (errorMessage ?? 'Could not read the media library.')
                 : isScanning
-                  ? `Reading audio in batches (batch ${batchIndex + 1}). The full library is not kept in memory.`
-                  : 'Tag parsing and the full song list come next. This scan only lists audio files.'}
+                  ? `Reading audio and tags in batches (batch ${batchIndex + 1}).`
+                  : 'Tags use embedded metadata when present; otherwise filename / Unknown Artist / Unknown Album. Song list UI comes next.'}
             </AppText>
+            {!isScanning && status === 'ready' && sampleTitles.length > 0 ? (
+              <AppText variant="caption" tone="muted">
+                Examples: {sampleTitles.join(' · ')}
+              </AppText>
+            ) : null}
           </NeoCard>
 
           <Pressable

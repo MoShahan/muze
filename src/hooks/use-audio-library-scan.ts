@@ -17,6 +17,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
   const [status, setStatus] = useState<ScanStatus>('idle');
   const [scannedCount, setScannedCount] = useState(0);
   const [batchIndex, setBatchIndex] = useState(0);
+  const [sampleTitles, setSampleTitles] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
@@ -37,18 +38,32 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
     setStatus('scanning');
     setScannedCount(0);
     setBatchIndex(0);
+    setSampleTitles([]);
     setErrorMessage(null);
 
     try {
       const finalProgress = await scanAudioLibrary({
         signal: controller.signal,
-        onBatch: (_batch, progress: AudioScanProgress) => {
+        onBatch: (batch, progress: AudioScanProgress) => {
           if (runIdRef.current !== runId) {
             return;
           }
-          // Only keep counters — do not store every asset in React state.
+          // Counters + a tiny sample of titles (not the full library).
           setScannedCount(progress.scannedCount);
           setBatchIndex(progress.batchIndex);
+          setSampleTitles((prev) => {
+            if (prev.length >= 3) {
+              return prev;
+            }
+            const next = [...prev];
+            for (const asset of batch) {
+              if (next.length >= 3) {
+                break;
+              }
+              next.push(`${asset.title} · ${asset.artist}`);
+            }
+            return next;
+          });
         },
       });
 
@@ -67,6 +82,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       const message = error instanceof Error ? error.message : 'Audio scan failed';
       setScannedCount(0);
       setBatchIndex(0);
+      setSampleTitles([]);
       setErrorMessage(message);
       setStatus('error');
       return null;
@@ -91,6 +107,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       scannedCount: 0,
       batchIndex: 0,
       count: 0,
+      sampleTitles: [] as string[],
       errorMessage: null,
       isScanning: false,
       rescan: runScan,
@@ -102,6 +119,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
     scannedCount,
     batchIndex,
     count: scannedCount,
+    sampleTitles,
     errorMessage,
     isScanning: status === 'scanning',
     rescan: runScan,

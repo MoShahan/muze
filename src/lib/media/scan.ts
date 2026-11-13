@@ -1,6 +1,8 @@
 import { AssetField, MediaType, Query } from 'expo-media-library';
 
-/** Device audio asset as returned by MediaLibrary (no tag parsing yet). */
+import { parseTrackTagsBatch, type ParsedTrackTags } from '@/lib/metadata/parse-tags';
+
+/** Device audio asset from MediaLibrary, with parsed tags (or filename fallbacks). */
 export type ScannedAudioAsset = {
   id: string;
   uri: string;
@@ -11,7 +13,32 @@ export type ScannedAudioAsset = {
   creationTimeMs: number | null;
   /** Modification time in milliseconds, when available. */
   modificationTimeMs: number | null;
+  title: string;
+  artist: string;
+  album: string;
+  albumArtist: string | null;
+  trackNumber: number | null;
+  year: number | null;
+  genre: string | null;
 };
+
+type RawScannedAudioAsset = Omit<
+  ScannedAudioAsset,
+  'title' | 'artist' | 'album' | 'albumArtist' | 'trackNumber' | 'year' | 'genre'
+>;
+
+function withTags(asset: RawScannedAudioAsset, tags: ParsedTrackTags): ScannedAudioAsset {
+  return {
+    ...asset,
+    title: tags.title,
+    artist: tags.artist,
+    album: tags.album,
+    albumArtist: tags.albumArtist,
+    trackNumber: tags.trackNumber,
+    year: tags.year,
+    genre: tags.genre,
+  };
+}
 
 export type AudioScanProgress = {
   /** Total assets processed so far. */
@@ -88,7 +115,7 @@ export async function queryAudioAssetPage(
   assertNotAborted(signal);
 
   // Resolve info for this page only (parallel within the batch, not the whole library).
-  const page = await Promise.all(
+  const page: RawScannedAudioAsset[] = await Promise.all(
     assets.map(async (asset) => {
       const info = await asset.getInfo();
       return {
@@ -98,11 +125,15 @@ export async function queryAudioAssetPage(
         durationMs: secondsToMs(info.duration),
         creationTimeMs: optionalSecondsToMs(info.creationTime),
         modificationTimeMs: optionalSecondsToMs(info.modificationTime),
-      } satisfies ScannedAudioAsset;
+      } satisfies RawScannedAudioAsset;
     }),
   );
 
-  return page;
+  assertNotAborted(signal);
+
+  // Parse embedded tags (title/artist/album…) with filename / Unknown* fallbacks.
+  const tagged = await parseTrackTagsBatch(page, { signal, concurrency: 3 });
+  return tagged.map(({ tags, ...asset }) => withTags(asset, tags));
 }
 
 /**
