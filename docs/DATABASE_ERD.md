@@ -1,6 +1,6 @@
 # Muze SQLite ERD
 
-Source of truth for the live schema: `src/lib/db/schema.ts` (`muze.db`, version 1).
+Source of truth for the live schema: `src/lib/db/schema.ts` (`muze.db`, version 2).
 
 Audio files are **not** stored in the database. Rows hold metadata, user collections, caches, and settings only. Device audio stays on disk and is referenced by `tracks.uri` / MediaStore id.
 
@@ -49,6 +49,7 @@ erDiagram
     text artwork_path
     text folder_path
     int date_added
+    int source_modified_at
     int updated_at
   }
 
@@ -103,6 +104,9 @@ erDiagram
 ## Notes
 
 - `tracks.id` is the device media asset id (or app-stable equivalent), not a copied file.
+- `source_modified_at` stores MediaLibrary modification time (ms) so scans re-parse only new or changed files.
+- After each full scan, missing track ids are pruned; `albums` / `artists` are rebuilt from tag fields (`album` + album-artist/artist, and `artist`).
+- Album ids look like `album:<normalized-artist>|<normalized-title>`; artist ids like `artist:<normalized-name>`.
 - `waveforms.peaks` stores a compact serialized peak array (~150-200 values), not PCM audio.
-- `artwork_path` points at a cached thumbnail in app cache, never the original full-resolution embed unless needed later.
+- `artwork_path` points at a cached ~400px JPEG thumbnail in app cache, never the original full-resolution embed unless needed later.
 - Keep this diagram updated when `DATABASE_VERSION` / `SCHEMA_SQL` changes.
