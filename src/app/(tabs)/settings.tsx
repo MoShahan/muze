@@ -1,12 +1,13 @@
 import { type Href, router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AudioPermissionControl } from '@/components/settings/audio-permission-control';
 import { DisplayNameField } from '@/components/settings/display-name-field';
 import { FlacVerifyControl } from '@/components/settings/flac-verify-control';
+import { SettingsRow } from '@/components/settings/settings-row';
+import { SettingsSection } from '@/components/settings/settings-section';
 import { ThemePreferenceControl } from '@/components/settings/theme-preference-control';
 import { AppText } from '@/components/ui/app-text';
-import { NeoCard } from '@/components/ui/neo-card';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 
@@ -15,26 +16,25 @@ export default function SettingsScreen() {
     <Screen scroll contentStyle={styles.content}>
       <AppText variant="display">Settings</AppText>
 
-      <View style={styles.section}>
-        <AppText variant="section" tone="muted">
-          Appearance
-        </AppText>
-        <ThemePreferenceControl />
-      </View>
+      <SettingsSection title="Appearance">
+        <View style={styles.themePad}>
+          <ThemePreferenceControl />
+        </View>
+      </SettingsSection>
 
-      <View style={styles.section}>
-        <AppText variant="section" tone="muted">
-          Profile
-        </AppText>
+      <SettingsSection title="Profile">
         <DisplayNameField />
-      </View>
+      </SettingsSection>
 
-      <View style={styles.section}>
-        <AppText variant="section" tone="muted">
-          Library
-        </AppText>
+      <SettingsSection title="Library">
         <SettingsRow title="Rescan library" detail="Coming soon" />
-        <SettingsLink
+        <SettingsRow
+          title="Library folders"
+          detail="Choose"
+          hint="Show or hide folders that contain audio in Songs"
+          onPress={() => router.push('/library-folders' as Href)}
+        />
+        <SettingsRow
           title="Folders"
           detail="Browse"
           hint="Device folders as a stack screen (not a tab)"
@@ -42,47 +42,12 @@ export default function SettingsScreen() {
         />
         <AudioPermissionControl />
         <FlacVerifyControl />
-      </View>
+      </SettingsSection>
 
-      <View style={styles.section}>
-        <AppText variant="section" tone="muted">
-          About
-        </AppText>
+      <SettingsSection title="About">
         <SettingsRow title="Muze" detail="1.0.0" />
-      </View>
+      </SettingsSection>
     </Screen>
-  );
-}
-
-type SettingsRowProps = {
-  title: string;
-  detail: string;
-  hint?: string;
-};
-
-function SettingsRow({ title, detail, hint }: SettingsRowProps) {
-  return (
-    <NeoCard style={styles.row}>
-      <View style={styles.rowCopy}>
-        <NeoCard.Title>{title}</NeoCard.Title>
-        {hint ? <NeoCard.Subtitle>{hint}</NeoCard.Subtitle> : null}
-      </View>
-      <AppText variant="label" tone="secondary">
-        {detail}
-      </AppText>
-    </NeoCard>
-  );
-}
-
-type SettingsLinkProps = SettingsRowProps & {
-  onPress: () => void;
-};
-
-function SettingsLink({ title, detail, hint, onPress }: SettingsLinkProps) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress}>
-      <SettingsRow title={title} detail={detail} hint={hint} />
-    </Pressable>
   );
 }
 
@@ -90,17 +55,7 @@ const styles = StyleSheet.create({
   content: {
     gap: Spacing.four,
   },
-  section: {
-    gap: Spacing.two,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.three,
-  },
-  rowCopy: {
-    flex: 1,
-    gap: Spacing.half,
+  themePad: {
+    paddingVertical: Spacing.two,
   },
 });
