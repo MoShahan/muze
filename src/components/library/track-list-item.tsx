@@ -14,6 +14,8 @@ type TrackListItemProps = {
   durationLabel: string;
   artworkUri: string | null;
   onPressId: (id: string) => void;
+  onLongPressId?: (id: string) => void;
+  trailingLabel?: string;
 };
 
 export const TrackListItem = memo(function TrackListItem({
@@ -23,12 +25,15 @@ export const TrackListItem = memo(function TrackListItem({
   durationLabel,
   artworkUri,
   onPressId,
+  onLongPressId,
+  trailingLabel,
 }: TrackListItemProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${title} by ${artist}`}
       onPress={() => onPressId(id)}
+      onLongPress={onLongPressId ? () => onLongPressId(id) : undefined}
       style={styles.row}
     >
       <LibraryArtwork uri={artworkUri} size={ART_SIZE} round />
@@ -41,7 +46,7 @@ export const TrackListItem = memo(function TrackListItem({
         </AppText>
       </View>
       <AppText variant="caption" tone="muted">
-        {durationLabel}
+        {trailingLabel ?? durationLabel}
       </AppText>
     </Pressable>
   );

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,12 +10,14 @@ import { VinylRecord } from '@/components/player/vinyl-record';
 import { WaveformSeekbar } from '@/components/player/waveform-seekbar';
 import { Spacing } from '@/constants/theme';
 import { useTrackWaveform } from '@/hooks/use-track-waveform';
+import { isFavorite, toggleFavorite } from '@/lib/db/favorites';
 import { usePlayback } from '@/store/playback-provider';
 import { useTheme } from '@/store/theme-provider';
 
 export default function PlayerScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const db = useSQLiteContext();
   const {
     currentTrack,
     isPlaying,
@@ -33,6 +36,40 @@ export default function PlayerScreen() {
     trackId: currentTrack?.id,
     uri: currentTrack?.uri,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    const trackId = currentTrack?.id;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) {
+        return;
+      }
+      if (!trackId) {
+        setFavorited(false);
+        return;
+      }
+      const next = await isFavorite(db, trackId);
+      if (!cancelled) {
+        setFavorited(next);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, db]);
+
+  const onToggleFavorite = () => {
+    const trackId = currentTrack?.id;
+    if (!trackId) {
+      return;
+    }
+    setFavorited((value) => !value);
+    void (async () => {
+      const next = await toggleFavorite(db, trackId);
+      setFavorited(next);
+    })();
+  };
 
   const title = currentTrack?.title ?? 'No track';
   const artist = currentTrack?.artist ?? 'Select a song to play';
@@ -66,7 +103,7 @@ export default function PlayerScreen() {
           title={title}
           artist={artist}
           favorited={favorited}
-          onToggleFavorite={() => setFavorited((value) => !value)}
+          onToggleFavorite={onToggleFavorite}
         />
 
         <WaveformSeekbar

@@ -38,7 +38,7 @@ export type UpsertTrackInput = {
   sourceModifiedAt: number | null;
 };
 
-type TrackDbRow = {
+export type TrackDbRow = {
   id: string;
   uri: string;
   filename: string;
@@ -57,7 +57,7 @@ type TrackDbRow = {
   updated_at: number;
 };
 
-function mapRow(row: TrackDbRow): CachedTrackRow {
+export function mapTrackRow(row: TrackDbRow): CachedTrackRow {
   return {
     id: row.id,
     uri: row.uri,
@@ -98,10 +98,17 @@ export async function getCachedTracksByIds(
   );
 
   for (const row of rows) {
-    map.set(row.id, mapRow(row));
+    map.set(row.id, mapTrackRow(row));
   }
   return map;
 }
+
+/** Shared SELECT body; join as `tracks` when combining with other tables. */
+export const TRACK_SELECT_SQL = `SELECT tracks.id, tracks.uri, tracks.filename, tracks.title, tracks.artist, tracks.album,
+            tracks.album_artist, tracks.track_number, tracks.year, tracks.genre,
+            tracks.duration_ms, tracks.artwork_path, tracks.folder_path, tracks.date_added,
+            tracks.source_modified_at, tracks.updated_at
+     FROM tracks`;
 
 const TRACK_SELECT = `SELECT id, uri, filename, title, artist, album, album_artist, track_number, year, genre,
             duration_ms, artwork_path, folder_path, date_added, source_modified_at, updated_at
@@ -112,7 +119,7 @@ export async function listTracks(db: SQLiteDatabase): Promise<CachedTrackRow[]> 
     `${TRACK_SELECT}
      ORDER BY title COLLATE NOCASE ASC, artist COLLATE NOCASE ASC`,
   );
-  return rows.map(mapRow);
+  return rows.map(mapTrackRow);
 }
 
 /** Album tracks ordered by disc track number when present. */
@@ -128,7 +135,7 @@ export async function listTracksForAlbum(
      ORDER BY (track_number IS NULL), track_number ASC, title COLLATE NOCASE ASC`,
     [albumTitle, albumArtist],
   );
-  return rows.map(mapRow);
+  return rows.map(mapTrackRow);
 }
 
 export async function listTracksForArtist(
@@ -141,7 +148,7 @@ export async function listTracksForArtist(
      ORDER BY album COLLATE NOCASE ASC, (track_number IS NULL), track_number ASC, title COLLATE NOCASE ASC`,
     [artistName],
   );
-  return rows.map(mapRow);
+  return rows.map(mapTrackRow);
 }
 
 export async function listTracksForFolder(
@@ -154,7 +161,7 @@ export async function listTracksForFolder(
      ORDER BY filename COLLATE NOCASE ASC, title COLLATE NOCASE ASC`,
     [folderPath],
   );
-  return rows.map(mapRow);
+  return rows.map(mapTrackRow);
 }
 
 /** Upsert parsed metadata + artwork cache paths for a scan batch. */

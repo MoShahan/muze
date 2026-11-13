@@ -3,10 +3,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { RecentPlayRecorder } from '@/components/collections/recent-play-recorder';
 import { DatabaseProvider } from '@/store/database-provider';
 import { LibraryVisibilityProvider } from '@/store/library-visibility-provider';
 import { PlaybackProvider } from '@/store/playback-provider';
 import { ThemeProvider, useTheme } from '@/store/theme-provider';
+
+// Registers the Android home-screen widget stub for the next native build.
+import '@/widgets/muze-now-playing';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,10 +40,13 @@ function RootNavigator() {
       <Stack.Screen name="search" />
       <Stack.Screen name="folders" />
       <Stack.Screen name="library-folders" />
+      <Stack.Screen name="favorites" />
+      <Stack.Screen name="recent" />
       <Stack.Screen name="album/[id]" />
       <Stack.Screen name="artist/[id]" />
       <Stack.Screen name="folder/[id]" />
       <Stack.Screen name="playlist/[id]" />
+      <Stack.Screen name="playlist/[id]/add" />
     </Stack>
   );
 }
@@ -51,6 +58,7 @@ export default function RootLayout() {
         <ThemeProvider>
           <LibraryVisibilityProvider>
             <PlaybackProvider>
+              <RecentPlayRecorder />
               <RootNavigator />
             </PlaybackProvider>
           </LibraryVisibilityProvider>
