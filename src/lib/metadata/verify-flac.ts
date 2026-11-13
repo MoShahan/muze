@@ -114,7 +114,7 @@ export async function verifyFlacTagAndArtParsing(
           hasVorbis,
           hasEmbeddedArt: detailed.hasEmbeddedArt,
           artFormat: detailed.art?.format ?? null,
-          artByteLength: detailed.art?.byteLength ?? null,
+          artByteLength: detailed.art?.data.byteLength ?? null,
         });
       }
 

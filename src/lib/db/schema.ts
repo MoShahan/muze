@@ -1,7 +1,7 @@
 /** Initial Muze SQLite schema. Audio files are never stored here. */
 
 export const DATABASE_NAME = 'muze.db';
-export const DATABASE_VERSION = 1;
+export const DATABASE_VERSION = 2;
 
 export const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tracks (
   artwork_path TEXT,
   folder_path TEXT,
   date_added INTEGER,
+  source_modified_at INTEGER,
   updated_at INTEGER NOT NULL
 );
 

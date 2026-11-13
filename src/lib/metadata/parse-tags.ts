@@ -1,6 +1,8 @@
 import { EncodingType, getInfoAsync, readAsStringAsync } from 'expo-file-system/legacy';
 import { parseBuffer } from 'music-metadata';
 
+import type { EmbeddedArtBytes } from '@/lib/metadata/artwork-cache';
+
 export const UNKNOWN_ARTIST = 'Unknown Artist';
 export const UNKNOWN_ALBUM = 'Unknown Album';
 
@@ -27,8 +29,8 @@ export type ParsedTrackTagsDetailed = ParsedTrackTags & {
   container: string | null;
   tagTypes: string[];
   hasEmbeddedArt: boolean;
-  /** Picture summary only — raw bytes are not retained. */
-  art: { format: string; byteLength: number } | null;
+  /** Present when includeArt is true and a picture was found. */
+  art: EmbeddedArtBytes | null;
 };
 
 export type ParseTrackTagsOptions = {
@@ -187,7 +189,7 @@ export async function parseTrackTagsDetailed(
     const picture = includeArt ? (common.picture?.[0] ?? null) : null;
     const art =
       picture && picture.data.byteLength > 0
-        ? { format: picture.format, byteLength: picture.data.byteLength }
+        ? { format: picture.format, data: picture.data }
         : null;
 
     return {
@@ -221,13 +223,20 @@ export function hasVorbisTags(tagTypes: string[]): boolean {
   return tagTypes.some((type) => type.toLowerCase().includes('vorbis'));
 }
 
+type BatchParseOptions = {
+  concurrency?: number;
+  signal?: AbortSignal;
+  includeArt?: boolean;
+};
+
 /** Parse tags for a batch with limited concurrency to avoid memory spikes. */
 export async function parseTrackTagsBatch<T extends { uri: string; filename: string }>(
   items: T[],
-  options?: { concurrency?: number; signal?: AbortSignal },
-): Promise<(T & { tags: ParsedTrackTags })[]> {
+  options?: BatchParseOptions,
+): Promise<(T & { tags: ParsedTrackTagsDetailed })[]> {
   const concurrency = options?.concurrency ?? 3;
-  const results: (T & { tags: ParsedTrackTags })[] = new Array(items.length);
+  const includeArt = options?.includeArt === true;
+  const results: (T & { tags: ParsedTrackTagsDetailed })[] = new Array(items.length);
   let nextIndex = 0;
 
   async function worker() {
@@ -241,7 +250,7 @@ export async function parseTrackTagsBatch<T extends { uri: string; filename: str
         return;
       }
       const item = items[index];
-      const tags = await parseTrackTags(item.uri, item.filename);
+      const tags = await parseTrackTagsDetailed(item.uri, item.filename, { includeArt });
       results[index] = { ...item, tags };
     }
   }

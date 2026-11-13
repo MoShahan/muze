@@ -15,10 +15,20 @@ import { useAudioLibraryScan } from '@/hooks/use-audio-library-scan';
 export default function SongsScreen() {
   const { isLoading, isGranted, isUndetermined, canAskAgain, request, openSettings } =
     useAudioLibraryPermission();
-  const { status, count, batchIndex, sampleTitles, errorMessage, isScanning, rescan } =
-    useAudioLibraryScan({
-      enabled: isGranted,
-    });
+  const {
+    status,
+    count,
+    cacheHitCount,
+    reparsedCount,
+    batchIndex,
+    libraryCounts,
+    sampleTitles,
+    errorMessage,
+    isScanning,
+    rescan,
+  } = useAudioLibraryScan({
+    enabled: isGranted,
+  });
   const [busy, setBusy] = useState(false);
   const didAutoRequest = useRef(false);
 
@@ -80,8 +90,8 @@ export default function SongsScreen() {
               {status === 'error'
                 ? (errorMessage ?? 'Could not read the media library.')
                 : isScanning
-                  ? `Reading audio and tags in batches (batch ${batchIndex + 1}).`
-                  : 'Tags use embedded metadata when present; otherwise filename / Unknown Artist / Unknown Album. Song list UI comes next.'}
+                  ? `Persisting tracks (batch ${batchIndex + 1}). Reused ${cacheHitCount}, re-parsed ${reparsedCount}.`
+                  : `SQLite: ${libraryCounts.tracks} tracks · ${libraryCounts.albums} albums · ${libraryCounts.artists} artists. Reused ${cacheHitCount}, re-parsed ${reparsedCount}. List UI comes next.`}
             </AppText>
             {!isScanning && status === 'ready' && sampleTitles.length > 0 ? (
               <AppText variant="caption" tone="muted">

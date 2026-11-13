@@ -1,6 +1,13 @@
 import { AssetField, MediaType, Query } from 'expo-media-library';
 
-import { parseTrackTagsBatch, type ParsedTrackTags } from '@/lib/metadata/parse-tags';
+import {
+  artworkFileExists,
+  cacheResizedAlbumArt,
+  deleteCachedAlbumArt,
+} from '@/lib/metadata/artwork-cache';
+import { parseTrackTagsBatch } from '@/lib/metadata/parse-tags';
+
+import type { CachedTrackRow, UpsertTrackInput } from '@/lib/db/tracks';
 
 /** Device audio asset from MediaLibrary, with parsed tags (or filename fallbacks). */
 export type ScannedAudioAsset = {
@@ -20,29 +27,32 @@ export type ScannedAudioAsset = {
   trackNumber: number | null;
   year: number | null;
   genre: string | null;
+  /** App-cache JPEG path when embedded art was cached. */
+  artworkPath: string | null;
+  /** True when tags/art came from SQLite cache without re-parse. */
+  fromCache: boolean;
 };
 
 type RawScannedAudioAsset = Omit<
   ScannedAudioAsset,
-  'title' | 'artist' | 'album' | 'albumArtist' | 'trackNumber' | 'year' | 'genre'
+  | 'title'
+  | 'artist'
+  | 'album'
+  | 'albumArtist'
+  | 'trackNumber'
+  | 'year'
+  | 'genre'
+  | 'artworkPath'
+  | 'fromCache'
 >;
-
-function withTags(asset: RawScannedAudioAsset, tags: ParsedTrackTags): ScannedAudioAsset {
-  return {
-    ...asset,
-    title: tags.title,
-    artist: tags.artist,
-    album: tags.album,
-    albumArtist: tags.albumArtist,
-    trackNumber: tags.trackNumber,
-    year: tags.year,
-    genre: tags.genre,
-  };
-}
 
 export type AudioScanProgress = {
   /** Total assets processed so far. */
   scannedCount: number;
+  /** Assets reused from SQLite + artwork cache. */
+  cacheHitCount: number;
+  /** Assets that were tag-parsed this run. */
+  reparsedCount: number;
   /** Zero-based batch index. */
   batchIndex: number;
   /** Size requested for each Query page. */
@@ -56,10 +66,13 @@ export type ScanAudioLibraryOptions = {
   pageSize?: number;
   /** Cancel mid-scan (e.g. screen unmount). */
   signal?: AbortSignal;
+  /** Look up cached metadata for this page of MediaStore ids. */
+  getCachedTracks?: (ids: string[]) => Promise<Map<string, CachedTrackRow>>;
+  /** Persist parsed metadata + artwork paths after each batch. */
+  persistTracks?: (tracks: UpsertTrackInput[]) => Promise<void>;
   /**
    * Called once per batch. The batch array is only valid for this call —
    * do not retain it if you want to avoid holding the full library in memory.
-   * Persist or process here (SQLite upsert comes in a later task).
    */
   onBatch: (batch: ScannedAudioAsset[], progress: AudioScanProgress) => void | Promise<void>;
 };
@@ -94,15 +107,74 @@ function yieldToUi(): Promise<void> {
   });
 }
 
+function fromCachedRow(asset: RawScannedAudioAsset, cached: CachedTrackRow): ScannedAudioAsset {
+  return {
+    ...asset,
+    title: cached.title,
+    artist: cached.artist,
+    album: cached.album,
+    albumArtist: cached.albumArtist,
+    trackNumber: cached.trackNumber,
+    year: cached.year,
+    genre: cached.genre,
+    artworkPath: cached.artworkPath,
+    fromCache: true,
+  };
+}
+
+/**
+ * Re-parse when missing, uri changed, mtime changed, or cached artwork file was evicted.
+ */
+export function shouldReparseTrack(
+  asset: RawScannedAudioAsset,
+  cached: CachedTrackRow | undefined,
+): boolean {
+  if (!cached) {
+    return true;
+  }
+  if (cached.uri !== asset.uri || cached.filename !== asset.filename) {
+    return true;
+  }
+  if (cached.sourceModifiedAt !== asset.modificationTimeMs) {
+    return true;
+  }
+  if (cached.artworkPath && !artworkFileExists(cached.artworkPath)) {
+    return true;
+  }
+  return false;
+}
+
+function toUpsertInput(asset: ScannedAudioAsset): UpsertTrackInput {
+  return {
+    id: asset.id,
+    uri: asset.uri,
+    filename: asset.filename,
+    title: asset.title,
+    artist: asset.artist,
+    album: asset.album,
+    albumArtist: asset.albumArtist,
+    trackNumber: asset.trackNumber,
+    year: asset.year,
+    genre: asset.genre,
+    durationMs: asset.durationMs,
+    artworkPath: asset.artworkPath,
+    folderPath: null,
+    dateAdded: asset.creationTimeMs,
+    sourceModifiedAt: asset.modificationTimeMs,
+  };
+}
+
 /**
  * Query one page of audio assets from the device media library.
- * Requires audio library permission (see `@/lib/media/permissions`).
+ * Reuses SQLite-cached tags/art when the file is unchanged; otherwise re-parses
+ * (including embedded art) and writes a ~400px JPEG into app cache.
  */
 export async function queryAudioAssetPage(
   offset: number,
   limit: number = SCAN_BATCH_SIZE,
   signal?: AbortSignal,
-): Promise<ScannedAudioAsset[]> {
+  options?: Pick<ScanAudioLibraryOptions, 'getCachedTracks' | 'persistTracks'>,
+): Promise<{ assets: ScannedAudioAsset[]; cacheHits: number; reparsed: number }> {
   assertNotAborted(signal);
 
   const assets = await new Query()
@@ -114,7 +186,6 @@ export async function queryAudioAssetPage(
 
   assertNotAborted(signal);
 
-  // Resolve info for this page only (parallel within the batch, not the whole library).
   const page: RawScannedAudioAsset[] = await Promise.all(
     assets.map(async (asset) => {
       const info = await asset.getInfo();
@@ -131,9 +202,81 @@ export async function queryAudioAssetPage(
 
   assertNotAborted(signal);
 
-  // Parse embedded tags (title/artist/album…) with filename / Unknown* fallbacks.
-  const tagged = await parseTrackTagsBatch(page, { signal, concurrency: 3 });
-  return tagged.map(({ tags, ...asset }) => withTags(asset, tags));
+  const cachedMap = options?.getCachedTracks
+    ? await options.getCachedTracks(page.map((item) => item.id))
+    : new Map<string, CachedTrackRow>();
+
+  const cachedAssets: ScannedAudioAsset[] = [];
+  const toParse: RawScannedAudioAsset[] = [];
+
+  for (const asset of page) {
+    const cached = cachedMap.get(asset.id);
+    if (shouldReparseTrack(asset, cached)) {
+      toParse.push(asset);
+    } else if (cached) {
+      cachedAssets.push(fromCachedRow(asset, cached));
+    } else {
+      toParse.push(asset);
+    }
+  }
+
+  assertNotAborted(signal);
+
+  const tagged = await parseTrackTagsBatch(toParse, {
+    signal,
+    concurrency: 2,
+    includeArt: true,
+  });
+
+  const parsedAssets: ScannedAudioAsset[] = [];
+  for (const item of tagged) {
+    assertNotAborted(signal);
+    const previous = cachedMap.get(item.id);
+    let artworkPath: string | null = null;
+
+    if (item.tags.art) {
+      artworkPath = await cacheResizedAlbumArt(item.id, item.tags.art);
+      // Drop raw picture bytes ASAP after caching.
+      item.tags.art = null;
+    } else if (previous?.artworkPath) {
+      deleteCachedAlbumArt(previous.artworkPath);
+    }
+
+    parsedAssets.push({
+      id: item.id,
+      uri: item.uri,
+      filename: item.filename,
+      durationMs: item.durationMs,
+      creationTimeMs: item.creationTimeMs,
+      modificationTimeMs: item.modificationTimeMs,
+      title: item.tags.title,
+      artist: item.tags.artist,
+      album: item.tags.album,
+      albumArtist: item.tags.albumArtist,
+      trackNumber: item.tags.trackNumber,
+      year: item.tags.year,
+      genre: item.tags.genre,
+      artworkPath,
+      fromCache: false,
+    });
+  }
+
+  const merged = [...cachedAssets, ...parsedAssets];
+  // Keep MediaLibrary page order.
+  const byId = new Map(merged.map((asset) => [asset.id, asset]));
+  const ordered = page
+    .map((raw) => byId.get(raw.id))
+    .filter((asset): asset is ScannedAudioAsset => asset != null);
+
+  if (options?.persistTracks) {
+    await options.persistTracks(ordered.map(toUpsertInput));
+  }
+
+  return {
+    assets: ordered,
+    cacheHits: cachedAssets.length,
+    reparsed: parsedAssets.length,
+  };
 }
 
 /**
@@ -146,34 +289,44 @@ export async function scanAudioLibrary(
   const batchSize = options.pageSize ?? SCAN_BATCH_SIZE;
   let offset = 0;
   let scannedCount = 0;
+  let cacheHitCount = 0;
+  let reparsedCount = 0;
   let batchIndex = 0;
 
   while (true) {
     assertNotAborted(options.signal);
 
-    const batch = await queryAudioAssetPage(offset, batchSize, options.signal);
-    if (batch.length === 0) {
-      const progress: AudioScanProgress = {
+    const page = await queryAudioAssetPage(offset, batchSize, options.signal, {
+      getCachedTracks: options.getCachedTracks,
+      persistTracks: options.persistTracks,
+    });
+
+    if (page.assets.length === 0) {
+      return {
         scannedCount,
+        cacheHitCount,
+        reparsedCount,
         batchIndex,
         batchSize,
         done: true,
       };
-      return progress;
     }
 
-    scannedCount += batch.length;
-    const isLast = batch.length < batchSize;
+    scannedCount += page.assets.length;
+    cacheHitCount += page.cacheHits;
+    reparsedCount += page.reparsed;
+    const isLast = page.assets.length < batchSize;
     const progress: AudioScanProgress = {
       scannedCount,
+      cacheHitCount,
+      reparsedCount,
       batchIndex,
       batchSize,
       done: isLast,
     };
 
-    await options.onBatch(batch, progress);
-    // Drop local reference; caller must not retain `batch` if avoiding full-library memory.
-    batch.length = 0;
+    await options.onBatch(page.assets, progress);
+    page.assets.length = 0;
 
     await yieldToUi();
 
