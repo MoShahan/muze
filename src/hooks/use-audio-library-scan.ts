@@ -5,11 +5,14 @@
  * then finalizes album/artist groups in SQLite. Exists so screens (mainly Songs)
  * get progress, abort-on-unmount, rescan, and a `libraryRevision` bump without
  * owning scan side effects themselves.
+ *
+ * Auto-scan runs only when the SQLite library is empty. Once tracks exist, the
+ * Songs list is served from cache; pull-to-refresh / `rescan` walks MediaStore again.
  */
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { finalizeLibraryScan, type LibraryCounts } from '@/lib/db/library';
+import { finalizeLibraryScan, getLibraryCounts, type LibraryCounts } from '@/lib/db/library';
 import { getCachedTracksByIds, upsertTracks } from '@/lib/db/tracks';
 import { scanAudioLibrary, type AudioScanProgress } from '@/lib/media/scan';
 
@@ -28,17 +31,23 @@ const EMPTY_COUNTS: LibraryCounts = { tracks: 0, albums: 0, artists: 0 };
 
 export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
   const db = useSQLiteContext();
+  const dbRef = useRef(db);
+
   const [status, setStatus] = useState<ScanStatus>('idle');
   const [scannedCount, setScannedCount] = useState(0);
   const [cacheHitCount, setCacheHitCount] = useState(0);
   const [reparsedCount, setReparsedCount] = useState(0);
   const [batchIndex, setBatchIndex] = useState(0);
   const [libraryCounts, setLibraryCounts] = useState<LibraryCounts>(EMPTY_COUNTS);
-  /** Increments when a scan successfully finalizes groups — list screens reload. */
+  /** Bumps after each persisted batch (and again after finalize) so Songs can refresh live. */
   const [libraryRevision, setLibraryRevision] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
+
+  useEffect(() => {
+    dbRef.current = db;
+  }, [db]);
 
   const runScan = useCallback(async () => {
     abortRef.current?.abort();
@@ -46,6 +55,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
     abortRef.current = controller;
     const runId = runIdRef.current + 1;
     runIdRef.current = runId;
+    const database = dbRef.current;
 
     // Defer state updates so callers inside effects do not sync-setState in the effect body.
     await Promise.resolve();
@@ -65,8 +75,8 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
     try {
       const finalProgress = await scanAudioLibrary({
         signal: controller.signal,
-        getCachedTracks: (ids) => getCachedTracksByIds(db, ids),
-        persistTracks: (tracks) => upsertTracks(db, tracks),
+        getCachedTracks: (ids) => getCachedTracksByIds(database, ids),
+        persistTracks: (tracks) => upsertTracks(database, tracks),
         onBatch: (batch, progress: AudioScanProgress) => {
           if (runIdRef.current !== runId) {
             return;
@@ -78,6 +88,8 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
           setCacheHitCount(progress.cacheHitCount);
           setReparsedCount(progress.reparsedCount);
           setBatchIndex(progress.batchIndex);
+          // Show songs as soon as each batch is upserted — do not wait for the full scan.
+          setLibraryRevision((value) => value + 1);
         },
       });
 
@@ -85,7 +97,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
         return null;
       }
 
-      const counts = await finalizeLibraryScan(db, seenIds);
+      const counts = await finalizeLibraryScan(database, seenIds);
       if (runIdRef.current !== runId) {
         return null;
       }
@@ -111,16 +123,39 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       setStatus('error');
       return null;
     }
-  }, [db]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
       return;
     }
 
-    void runScan();
+    let cancelled = false;
+
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) {
+        return;
+      }
+
+      const counts = await getLibraryCounts(dbRef.current);
+      if (cancelled) {
+        return;
+      }
+
+      // Cached library: show immediately. Full MediaStore walk is pull-to-refresh / rescan only.
+      if (counts.tracks > 0) {
+        setLibraryCounts(counts);
+        setStatus('ready');
+        setLibraryRevision((value) => value + 1);
+        return;
+      }
+
+      await runScan();
+    })();
 
     return () => {
+      cancelled = true;
       abortRef.current?.abort();
     };
   }, [enabled, runScan]);

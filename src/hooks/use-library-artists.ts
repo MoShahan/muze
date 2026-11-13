@@ -1,15 +1,17 @@
 /**
  * Artists-tab data hook.
  *
- * Reads grouped artist rows from SQLite and filters them by the in-screen
- * search query. Exists so the Artists list can refresh after scans / focus
- * without duplicating query + filter wiring in the route file.
+ * Reads artist rows from visible tracks (respecting hidden folders) and filters
+ * by the in-screen search query.
  */
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { listArtists, type ArtistRow } from '@/lib/db/artists';
+import { listTracks } from '@/lib/db/tracks';
 import { matchesLibraryQuery } from '@/lib/library/filter';
+import { artistsFromTracks, filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
+import { useLibraryVisibility } from '@/store/library-visibility-provider';
 
 type UseLibraryArtistsOptions = {
   enabled?: boolean;
@@ -17,12 +19,24 @@ type UseLibraryArtistsOptions = {
   query?: string;
 };
 
+async function loadVisibleArtists(
+  db: Parameters<typeof listTracks>[0],
+  hiddenFolderPaths: ReadonlySet<string>,
+): Promise<ArtistRow[]> {
+  if (hiddenFolderPaths.size === 0) {
+    return listArtists(db);
+  }
+  const tracks = filterTracksExcludingFolders(await listTracks(db), hiddenFolderPaths);
+  return artistsFromTracks(tracks);
+}
+
 export function useLibraryArtists({
   enabled = true,
   revision = 0,
   query = '',
 }: UseLibraryArtistsOptions = {}) {
   const db = useSQLiteContext();
+  const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
   const [artists, setArtists] = useState<ArtistRow[]>([]);
   const [isLoading, setIsLoading] = useState(enabled);
 
@@ -34,13 +48,13 @@ export function useLibraryArtists({
     }
     setIsLoading(true);
     try {
-      const next = await listArtists(db);
+      const next = await loadVisibleArtists(db, hiddenFolderPaths);
       setArtists(next);
       return next;
     } finally {
       setIsLoading(false);
     }
-  }, [db, enabled]);
+  }, [db, enabled, hiddenFolderPaths]);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +70,7 @@ export function useLibraryArtists({
       }
       setIsLoading(true);
       try {
-        const next = await listArtists(db);
+        const next = await loadVisibleArtists(db, hiddenFolderPaths);
         if (!cancelled) {
           setArtists(next);
         }
@@ -69,7 +83,7 @@ export function useLibraryArtists({
     return () => {
       cancelled = true;
     };
-  }, [db, enabled, revision]);
+  }, [db, enabled, revision, hiddenFolderPaths, visibilityRevision]);
 
   const filteredArtists = useMemo(() => {
     return artists.filter((artist) => matchesLibraryQuery(artist.name, query));

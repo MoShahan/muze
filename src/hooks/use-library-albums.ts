@@ -1,15 +1,17 @@
 /**
  * Albums-tab data hook.
  *
- * Reads grouped album rows from SQLite and filters them by the in-screen
- * search query. Exists so the Albums list can refresh after scans / focus
- * without duplicating query + filter wiring in the route file.
+ * Reads album rows from visible tracks (respecting hidden folders) and filters
+ * by the in-screen search query.
  */
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { listAlbums, type AlbumRow } from '@/lib/db/albums';
+import { listTracks } from '@/lib/db/tracks';
 import { matchesLibraryQuery } from '@/lib/library/filter';
+import { albumsFromTracks, filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
+import { useLibraryVisibility } from '@/store/library-visibility-provider';
 
 type UseLibraryAlbumsOptions = {
   enabled?: boolean;
@@ -17,12 +19,24 @@ type UseLibraryAlbumsOptions = {
   query?: string;
 };
 
+async function loadVisibleAlbums(
+  db: Parameters<typeof listTracks>[0],
+  hiddenFolderPaths: ReadonlySet<string>,
+): Promise<AlbumRow[]> {
+  if (hiddenFolderPaths.size === 0) {
+    return listAlbums(db);
+  }
+  const tracks = filterTracksExcludingFolders(await listTracks(db), hiddenFolderPaths);
+  return albumsFromTracks(tracks);
+}
+
 export function useLibraryAlbums({
   enabled = true,
   revision = 0,
   query = '',
 }: UseLibraryAlbumsOptions = {}) {
   const db = useSQLiteContext();
+  const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
   const [albums, setAlbums] = useState<AlbumRow[]>([]);
   const [isLoading, setIsLoading] = useState(enabled);
 
@@ -34,13 +48,13 @@ export function useLibraryAlbums({
     }
     setIsLoading(true);
     try {
-      const next = await listAlbums(db);
+      const next = await loadVisibleAlbums(db, hiddenFolderPaths);
       setAlbums(next);
       return next;
     } finally {
       setIsLoading(false);
     }
-  }, [db, enabled]);
+  }, [db, enabled, hiddenFolderPaths]);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +70,7 @@ export function useLibraryAlbums({
       }
       setIsLoading(true);
       try {
-        const next = await listAlbums(db);
+        const next = await loadVisibleAlbums(db, hiddenFolderPaths);
         if (!cancelled) {
           setAlbums(next);
         }
@@ -69,7 +83,7 @@ export function useLibraryAlbums({
     return () => {
       cancelled = true;
     };
-  }, [db, enabled, revision]);
+  }, [db, enabled, revision, hiddenFolderPaths, visibilityRevision]);
 
   const filteredAlbums = useMemo(() => {
     return albums.filter(
