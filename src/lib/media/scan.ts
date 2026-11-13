@@ -1,5 +1,6 @@
 import { AssetField, MediaType, Query } from 'expo-media-library';
 
+import { folderPathFromUri } from '@/lib/media/folder-path';
 import {
   artworkFileExists,
   cacheResizedAlbumArt,
@@ -20,6 +21,8 @@ export type ScannedAudioAsset = {
   creationTimeMs: number | null;
   /** Modification time in milliseconds, when available. */
   modificationTimeMs: number | null;
+  /** Device folder path / MediaStore album folder label when known. */
+  folderPath: string | null;
   title: string;
   artist: string;
   album: string;
@@ -110,6 +113,8 @@ function yieldToUi(): Promise<void> {
 function fromCachedRow(asset: RawScannedAudioAsset, cached: CachedTrackRow): ScannedAudioAsset {
   return {
     ...asset,
+    // Prefer freshly derived folder path so folder browse stays current without a full re-parse.
+    folderPath: asset.folderPath ?? cached.folderPath,
     title: cached.title,
     artist: cached.artist,
     album: cached.album,
@@ -158,10 +163,31 @@ function toUpsertInput(asset: ScannedAudioAsset): UpsertTrackInput {
     genre: asset.genre,
     durationMs: asset.durationMs,
     artworkPath: asset.artworkPath,
-    folderPath: null,
+    folderPath: asset.folderPath,
     dateAdded: asset.creationTimeMs,
     sourceModifiedAt: asset.modificationTimeMs,
   };
+}
+
+async function resolveFolderPath(
+  asset: { getAlbums: () => Promise<{ getTitle: () => Promise<string> }[]> },
+  uri: string,
+  filename: string,
+): Promise<string | null> {
+  const fromUri = folderPathFromUri(uri, filename);
+  if (fromUri) {
+    return fromUri;
+  }
+  try {
+    const albums = await asset.getAlbums();
+    if (albums[0]) {
+      const title = (await albums[0].getTitle()).trim();
+      return title.length > 0 ? title : null;
+    }
+  } catch {
+    // Album lookup is best-effort on opaque content:// URIs.
+  }
+  return null;
 }
 
 /**
@@ -189,6 +215,7 @@ export async function queryAudioAssetPage(
   const page: RawScannedAudioAsset[] = await Promise.all(
     assets.map(async (asset) => {
       const info = await asset.getInfo();
+      const folderPath = await resolveFolderPath(asset, info.uri, info.filename);
       return {
         id: info.id,
         uri: info.uri,
@@ -196,6 +223,7 @@ export async function queryAudioAssetPage(
         durationMs: secondsToMs(info.duration),
         creationTimeMs: optionalSecondsToMs(info.creationTime),
         modificationTimeMs: optionalSecondsToMs(info.modificationTime),
+        folderPath,
       } satisfies RawScannedAudioAsset;
     }),
   );
@@ -249,6 +277,7 @@ export async function queryAudioAssetPage(
       durationMs: item.durationMs,
       creationTimeMs: item.creationTimeMs,
       modificationTimeMs: item.modificationTimeMs,
+      folderPath: item.folderPath,
       title: item.tags.title,
       artist: item.tags.artist,
       album: item.tags.album,

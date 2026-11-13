@@ -1,15 +1,22 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { StyleSheet } from 'react-native';
 
 import { AudioPermissionPanel } from '@/components/library/audio-permission-panel';
+import { LibraryBrowser } from '@/components/library/library-browser';
+import { TrackListItem } from '@/components/library/track-list-item';
+import { TrackSortControl } from '@/components/library/track-sort-control';
 import { AppText } from '@/components/ui/app-text';
 import { NeoCard } from '@/components/ui/neo-card';
-import { NeoSurface } from '@/components/ui/neo-surface';
 import { Screen } from '@/components/ui/screen';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
 import { useAudioLibraryScan } from '@/hooks/use-audio-library-scan';
+import { useDisplayName } from '@/hooks/use-display-name';
+import { useLibraryTracks } from '@/hooks/use-library-tracks';
+import { formatHomeGreeting } from '@/lib/greeting';
+import { formatDurationMs } from '@/lib/library/filter';
+import { usePlayback } from '@/store/playback-provider';
 
 /** Default tab (Expo `index` route). Product name: Songs. */
 export default function SongsScreen() {
@@ -18,17 +25,29 @@ export default function SongsScreen() {
   const {
     status,
     count,
-    cacheHitCount,
-    reparsedCount,
     batchIndex,
     libraryCounts,
-    sampleTitles,
+    libraryRevision,
     errorMessage,
     isScanning,
     rescan,
   } = useAudioLibraryScan({
     enabled: isGranted,
   });
+  const { displayName } = useDisplayName();
+  const [query, setQuery] = useState('');
+  const {
+    filteredTracks,
+    sortKey,
+    setSortKey,
+    isLoading: tracksLoading,
+    refresh,
+  } = useLibraryTracks({
+    enabled: isGranted,
+    revision: libraryRevision,
+    query,
+  });
+  const { setCurrentTrack, setQueue } = usePlayback();
   const [busy, setBusy] = useState(false);
   const didAutoRequest = useRef(false);
 
@@ -49,19 +68,68 @@ export default function SongsScreen() {
     }
   };
 
-  return (
-    <Screen contentStyle={styles.content}>
-      <AppText variant="display">Songs</AppText>
+  const onPressTrack = useCallback(
+    (id: string) => {
+      const track = filteredTracks.find((item) => item.id === id);
+      if (!track) {
+        return;
+      }
+      setCurrentTrack({
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        artworkUri: track.artworkPath,
+        durationMs: track.durationMs,
+      });
+      setQueue(
+        filteredTracks.map((item) => item.id),
+        filteredTracks.findIndex((item) => item.id === id),
+      );
+      router.push('/player');
+    },
+    [filteredTracks, setCurrentTrack, setQueue],
+  );
 
-      {isLoading ? (
+  const renderItem = useCallback(
+    ({ item }: { item: (typeof filteredTracks)[number] }) => (
+      <TrackListItem
+        id={item.id}
+        title={item.title}
+        artist={item.artist}
+        durationLabel={formatDurationMs(item.durationMs)}
+        artworkUri={item.artworkPath}
+        onPressId={onPressTrack}
+      />
+    ),
+    [onPressTrack],
+  );
+
+  const statusMessage = !isGranted
+    ? null
+    : status === 'error'
+      ? (errorMessage ?? 'Scan failed')
+      : isScanning
+        ? `Scanning… ${count} files (batch ${batchIndex + 1})`
+        : `${libraryCounts.tracks} songs · ${libraryCounts.albums} albums · ${libraryCounts.artists} artists`;
+
+  if (isLoading) {
+    return (
+      <Screen contentStyle={styles.content}>
+        <AppText variant="display">Songs</AppText>
         <NeoCard>
           <AppText variant="subtitle" tone="secondary">
             Checking audio permission…
           </AppText>
         </NeoCard>
-      ) : null}
+      </Screen>
+    );
+  }
 
-      {!isLoading && !isGranted ? (
+  if (!isGranted) {
+    return (
+      <Screen contentStyle={styles.content}>
+        <AppText variant="display">Songs</AppText>
         <AudioPermissionPanel
           canAskAgain={canAskAgain}
           busy={busy}
@@ -72,69 +140,49 @@ export default function SongsScreen() {
             void openSettings();
           }}
         />
-      ) : null}
+      </Screen>
+    );
+  }
 
-      {!isLoading && isGranted ? (
-        <>
-          <NeoCard>
-            <NeoCard.Title>
-              {isScanning
-                ? `Scanning… ${count} file${count === 1 ? '' : 's'}`
-                : status === 'error'
-                  ? 'Scan failed'
-                  : count === 0
-                    ? 'No music on this device'
-                    : `${count} audio file${count === 1 ? '' : 's'} found`}
-            </NeoCard.Title>
-            <AppText variant="subtitle" tone="secondary">
-              {status === 'error'
-                ? (errorMessage ?? 'Could not read the media library.')
-                : isScanning
-                  ? `Persisting tracks (batch ${batchIndex + 1}). Reused ${cacheHitCount}, re-parsed ${reparsedCount}.`
-                  : `SQLite: ${libraryCounts.tracks} tracks · ${libraryCounts.albums} albums · ${libraryCounts.artists} artists. Reused ${cacheHitCount}, re-parsed ${reparsedCount}. List UI comes next.`}
-            </AppText>
-            {!isScanning && status === 'ready' && sampleTitles.length > 0 ? (
-              <AppText variant="caption" tone="muted">
-                Examples: {sampleTitles.join(' · ')}
-              </AppText>
-            ) : null}
-          </NeoCard>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Rescan audio library"
-            onPress={() => {
-              void rescan();
-            }}
-            disabled={isScanning}
-          >
-            <NeoSurface variant="raised" radius={Radius.lg} style={styles.action}>
-              <AppText variant="bodyStrong">{isScanning ? 'Scanning…' : 'Rescan audio'}</AppText>
-            </NeoSurface>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open player"
-            onPress={() => router.push('/player')}
-          >
-            <NeoSurface variant="raised" radius={Radius.lg} style={styles.action}>
-              <AppText variant="bodyStrong">Open player</AppText>
-            </NeoSurface>
-          </Pressable>
-        </>
-      ) : null}
-    </Screen>
+  return (
+    <LibraryBrowser
+      title="Songs"
+      greeting={formatHomeGreeting(displayName)}
+      statusMessage={statusMessage}
+      searchValue={query}
+      onSearchChange={setQuery}
+      searchPlaceholder="Search songs"
+      data={filteredTracks}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      emptyTitle={
+        tracksLoading || isScanning
+          ? 'Loading library…'
+          : query.trim()
+            ? 'No matching songs'
+            : 'No songs yet'
+      }
+      emptySubtitle={
+        tracksLoading || isScanning
+          ? 'Reading device audio into SQLite.'
+          : query.trim()
+            ? 'Try a different title, artist, or album.'
+            : 'Pull to refresh after adding music on this device.'
+      }
+      refreshing={isScanning}
+      onRefresh={() => {
+        void (async () => {
+          await rescan();
+          await refresh();
+        })();
+      }}
+      headerExtra={<TrackSortControl value={sortKey} onChange={setSortKey} />}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   content: {
     gap: Spacing.three,
-  },
-  action: {
-    alignItems: 'center',
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.four,
   },
 });

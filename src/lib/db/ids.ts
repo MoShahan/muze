@@ -18,3 +18,7 @@ export function albumArtistLabel(albumArtist: string | null | undefined, artist:
   const trimmed = albumArtist?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : artist;
 }
+
+export function folderIdFor(folderPath: string): string {
+  return `folder:${normalizeKeyPart(folderPath)}`;
+}

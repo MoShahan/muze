@@ -103,12 +103,56 @@ export async function getCachedTracksByIds(
   return map;
 }
 
+const TRACK_SELECT = `SELECT id, uri, filename, title, artist, album, album_artist, track_number, year, genre,
+            duration_ms, artwork_path, folder_path, date_added, source_modified_at, updated_at
+     FROM tracks`;
+
 export async function listTracks(db: SQLiteDatabase): Promise<CachedTrackRow[]> {
   const rows = await db.getAllAsync<TrackDbRow>(
-    `SELECT id, uri, filename, title, artist, album, album_artist, track_number, year, genre,
-            duration_ms, artwork_path, folder_path, date_added, source_modified_at, updated_at
-     FROM tracks
+    `${TRACK_SELECT}
      ORDER BY title COLLATE NOCASE ASC, artist COLLATE NOCASE ASC`,
+  );
+  return rows.map(mapRow);
+}
+
+/** Album tracks ordered by disc track number when present. */
+export async function listTracksForAlbum(
+  db: SQLiteDatabase,
+  albumTitle: string,
+  albumArtist: string,
+): Promise<CachedTrackRow[]> {
+  const rows = await db.getAllAsync<TrackDbRow>(
+    `${TRACK_SELECT}
+     WHERE album = ?
+       AND COALESCE(NULLIF(TRIM(album_artist), ''), artist) = ?
+     ORDER BY (track_number IS NULL), track_number ASC, title COLLATE NOCASE ASC`,
+    [albumTitle, albumArtist],
+  );
+  return rows.map(mapRow);
+}
+
+export async function listTracksForArtist(
+  db: SQLiteDatabase,
+  artistName: string,
+): Promise<CachedTrackRow[]> {
+  const rows = await db.getAllAsync<TrackDbRow>(
+    `${TRACK_SELECT}
+     WHERE artist = ?
+     ORDER BY album COLLATE NOCASE ASC, (track_number IS NULL), track_number ASC, title COLLATE NOCASE ASC`,
+    [artistName],
+  );
+  return rows.map(mapRow);
+}
+
+export async function listTracksForFolder(
+  db: SQLiteDatabase,
+  folderPath: string,
+): Promise<CachedTrackRow[]> {
+  const rows = await db.getAllAsync<TrackDbRow>(
+    `${TRACK_SELECT}
+     WHERE folder_path = ?
+     ORDER BY filename COLLATE NOCASE ASC, title COLLATE NOCASE ASC`,
+    [folderPath],
   );
   return rows.map(mapRow);
 }

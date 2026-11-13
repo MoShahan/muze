@@ -49,3 +49,21 @@ export async function getAlbumById(db: SQLiteDatabase, id: string): Promise<Albu
   );
   return row ? mapRow(row) : null;
 }
+
+/** Albums that include at least one track credited to this performing artist. */
+export async function listAlbumsForArtist(
+  db: SQLiteDatabase,
+  artistName: string,
+): Promise<AlbumRow[]> {
+  const rows = await db.getAllAsync<AlbumDbRow>(
+    `SELECT DISTINCT a.id, a.title, a.artist, a.artwork_path, a.track_count
+     FROM albums a
+     INNER JOIN tracks t
+       ON t.album = a.title
+      AND COALESCE(NULLIF(TRIM(t.album_artist), ''), t.artist) = a.artist
+     WHERE t.artist = ?
+     ORDER BY a.title COLLATE NOCASE ASC, a.artist COLLATE NOCASE ASC`,
+    [artistName],
+  );
+  return rows.map(mapRow);
+}

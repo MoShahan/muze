@@ -106,7 +106,8 @@ erDiagram
 - `tracks.id` is the device media asset id (or app-stable equivalent), not a copied file.
 - `source_modified_at` stores MediaLibrary modification time (ms) so scans re-parse only new or changed files.
 - After each full scan, missing track ids are pruned; `albums` / `artists` are rebuilt from tag fields (`album` + album-artist/artist, and `artist`).
-- Album ids look like `album:<normalized-artist>|<normalized-title>`; artist ids like `artist:<normalized-name>`.
+- Album ids look like `album:<normalized-artist>|<normalized-title>`; artist ids like `artist:<normalized-name>`; folder ids like `folder:<normalized-path>`.
+- `folder_path` is derived from the file URI parent path when possible, otherwise the MediaStore album title (Android folders).
 - `waveforms.peaks` stores a compact serialized peak array (~150-200 values), not PCM audio.
 - `artwork_path` points at a cached ~400px JPEG thumbnail in app cache, never the original full-resolution embed unless needed later.
 - Keep this diagram updated when `DATABASE_VERSION` / `SCHEMA_SQL` changes.

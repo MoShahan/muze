@@ -33,6 +33,7 @@ function RootNavigator() {
         }}
       />
       <Stack.Screen name="search" />
+      <Stack.Screen name="folders" />
       <Stack.Screen name="album/[id]" />
       <Stack.Screen name="artist/[id]" />
       <Stack.Screen name="folder/[id]" />

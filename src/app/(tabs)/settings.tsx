@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { type Href, router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AudioPermissionControl } from '@/components/settings/audio-permission-control';
 import { DisplayNameField } from '@/components/settings/display-name-field';
@@ -33,6 +34,12 @@ export default function SettingsScreen() {
           Library
         </AppText>
         <SettingsRow title="Rescan library" detail="Coming soon" />
+        <SettingsLink
+          title="Folders"
+          detail="Browse"
+          hint="Device folders as a stack screen (not a tab)"
+          onPress={() => router.push('/folders' as Href)}
+        />
         <AudioPermissionControl />
         <FlacVerifyControl />
       </View>
@@ -64,6 +71,18 @@ function SettingsRow({ title, detail, hint }: SettingsRowProps) {
         {detail}
       </AppText>
     </NeoCard>
+  );
+}
+
+type SettingsLinkProps = SettingsRowProps & {
+  onPress: () => void;
+};
+
+function SettingsLink({ title, detail, hint, onPress }: SettingsLinkProps) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress}>
+      <SettingsRow title={title} detail={detail} hint={hint} />
+    </Pressable>
   );
 }
 

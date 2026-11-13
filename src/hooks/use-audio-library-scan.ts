@@ -1,3 +1,11 @@
+/**
+ * Library scan orchestration hook.
+ *
+ * Runs the MediaLibrary audio scan in batches, upserts/caches tags + artwork,
+ * then finalizes album/artist groups in SQLite. Exists so screens (mainly Songs)
+ * get progress, abort-on-unmount, rescan, and a `libraryRevision` bump without
+ * owning scan side effects themselves.
+ */
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -26,7 +34,8 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
   const [reparsedCount, setReparsedCount] = useState(0);
   const [batchIndex, setBatchIndex] = useState(0);
   const [libraryCounts, setLibraryCounts] = useState<LibraryCounts>(EMPTY_COUNTS);
-  const [sampleTitles, setSampleTitles] = useState<string[]>([]);
+  /** Increments when a scan successfully finalizes groups — list screens reload. */
+  const [libraryRevision, setLibraryRevision] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
@@ -49,8 +58,6 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
     setCacheHitCount(0);
     setReparsedCount(0);
     setBatchIndex(0);
-    setLibraryCounts(EMPTY_COUNTS);
-    setSampleTitles([]);
     setErrorMessage(null);
 
     const seenIds = new Set<string>();
@@ -71,20 +78,6 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
           setCacheHitCount(progress.cacheHitCount);
           setReparsedCount(progress.reparsedCount);
           setBatchIndex(progress.batchIndex);
-          setSampleTitles((prev) => {
-            if (prev.length >= 3) {
-              return prev;
-            }
-            const next = [...prev];
-            for (const asset of batch) {
-              if (next.length >= 3) {
-                break;
-              }
-              const artMark = asset.artworkPath ? ' · art' : '';
-              next.push(`${asset.title} · ${asset.artist}${artMark}`);
-            }
-            return next;
-          });
         },
       });
 
@@ -102,6 +95,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       setReparsedCount(finalProgress.reparsedCount);
       setBatchIndex(finalProgress.batchIndex);
       setLibraryCounts(counts);
+      setLibraryRevision((value) => value + 1);
       setStatus('ready');
       return { ...finalProgress, libraryCounts: counts };
     } catch (error) {
@@ -113,8 +107,6 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       setCacheHitCount(0);
       setReparsedCount(0);
       setBatchIndex(0);
-      setLibraryCounts(EMPTY_COUNTS);
-      setSampleTitles([]);
       setErrorMessage(message);
       setStatus('error');
       return null;
@@ -142,7 +134,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       batchIndex: 0,
       count: 0,
       libraryCounts: EMPTY_COUNTS,
-      sampleTitles: [] as string[],
+      libraryRevision: 0,
       errorMessage: null,
       isScanning: false,
       rescan: runScan,
@@ -157,7 +149,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
     batchIndex,
     count: scannedCount,
     libraryCounts,
-    sampleTitles,
+    libraryRevision,
     errorMessage,
     isScanning: status === 'scanning',
     rescan: runScan,

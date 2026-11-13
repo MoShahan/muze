@@ -1,3 +1,11 @@
+/**
+ * Audio-library permission hook.
+ *
+ * Wraps expo-media-library's audio-only granular permission with request,
+ * refresh, open-Settings, and AppState re-check when the user returns from
+ * system Settings. Exists so Songs/Settings share one permission model
+ * instead of each screen talking to MediaLibrary directly.
+ */
 import { usePermissions } from 'expo-media-library';
 import { useCallback, useEffect } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
