@@ -2,6 +2,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { SettingsRow } from '@/components/settings/settings-row';
 import { AppText } from '@/components/ui/app-text';
 import { NeoCard } from '@/components/ui/neo-card';
 import { NeoSurface } from '@/components/ui/neo-surface';
@@ -50,21 +51,13 @@ export function DisplayNameField() {
 
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
+      <SettingsRow
+        title="Display name"
+        detail={savedName}
+        hint="Used in greetings (e.g. Songs header)"
         accessibilityLabel="Edit display name"
         onPress={openEditor}
-      >
-        <NeoCard style={styles.row}>
-          <View style={styles.rowCopy}>
-            <NeoCard.Title>Display name</NeoCard.Title>
-            <NeoCard.Subtitle>Used in greetings (e.g. Songs header)</NeoCard.Subtitle>
-          </View>
-          <AppText variant="label" tone="secondary">
-            {savedName}
-          </AppText>
-        </NeoCard>
-      </Pressable>
+      />
 
       <Modal
         visible={open}
@@ -143,16 +136,6 @@ export function DisplayNameField() {
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.three,
-  },
-  rowCopy: {
-    flex: 1,
-    gap: Spacing.half,
-  },
   backdrop: {
     flex: 1,
     alignItems: 'center',
