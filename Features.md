@@ -13,6 +13,7 @@ Muze is a personal Android music player built with Expo. It scans and plays audi
 - Sort track lists by title, artist, date added, or duration.
 - Search in place on each list screen (top search filters that page’s content only—e.g. Albums searches albums). No separate global search page.
 - Rescan the library and keep local metadata current.
+- Album detail uses a large full-bleed album-art hero with icon-only Play / Shuffle / Sort over a light scrim (planned; see `@docs/PROJECT_PLAN.md` Section 4.2.1). Artists list and artist detail show the artist name only (no artist image; tags only provide album art).
 
 ### Playback
 
