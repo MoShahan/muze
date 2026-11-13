@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+import { AudioPermissionControl } from '@/components/settings/audio-permission-control';
 import { DisplayNameField } from '@/components/settings/display-name-field';
 import { ThemePreferenceControl } from '@/components/settings/theme-preference-control';
 import { AppText } from '@/components/ui/app-text';
@@ -31,7 +32,7 @@ export default function SettingsScreen() {
           Library
         </AppText>
         <SettingsRow title="Rescan library" detail="Coming soon" />
-        <SettingsRow title="Permissions" detail="Coming soon" />
+        <AudioPermissionControl />
       </View>
 
       <View style={styles.section}>
