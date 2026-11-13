@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { NeoCard } from '@/components/ui/neo-card';
-import { NeoSurface } from '@/components/ui/neo-surface';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
 import { verifyFlacTagAndArtParsing, type FlacVerifyReport } from '@/lib/metadata/verify-flac';
 
@@ -46,15 +44,14 @@ export function FlacVerifyControl() {
     }
   };
 
-  return (
-    <NeoCard style={styles.card}>
-      <View style={styles.copy}>
-        <NeoCard.Title>Verify FLAC tags</NeoCard.Title>
-        <NeoCard.Subtitle>
-          Checks Vorbis comments and embedded album art on a sample of FLAC files from this device.
-        </NeoCard.Subtitle>
-      </View>
+  const actionLabel = busy
+    ? `Checking… ${progress}`
+    : !isGranted
+      ? 'Allow audio access first'
+      : 'Run FLAC verification';
 
+  return (
+    <View style={styles.wrap}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Verify FLAC tag and album art parsing"
@@ -62,33 +59,35 @@ export function FlacVerifyControl() {
           void onPress();
         }}
         disabled={busy || isLoading}
+        style={styles.row}
       >
-        <NeoSurface variant="pressed" radius={Radius.md} style={styles.action}>
-          <AppText variant="label">
-            {busy
-              ? `Checking… ${progress}`
-              : !isGranted
-                ? 'Allow audio access first'
-                : 'Run FLAC verification'}
+        <View style={styles.copy}>
+          <AppText variant="bodyStrong">Verify FLAC tags</AppText>
+          <AppText variant="caption" tone="muted">
+            Checks Vorbis comments and embedded album art on a sample of FLAC files from this
+            device.
           </AppText>
-        </NeoSurface>
+        </View>
+        <AppText variant="label" tone="secondary">
+          {actionLabel}
+        </AppText>
       </Pressable>
 
       {errorMessage ? (
-        <AppText variant="caption" tone="muted">
+        <AppText variant="caption" tone="muted" style={styles.meta}>
           {errorMessage}
         </AppText>
       ) : null}
 
       {report ? <ReportSummary report={report} /> : null}
-    </NeoCard>
+    </View>
   );
 }
 
 function ReportSummary({ report }: { report: FlacVerifyReport }) {
   if (report.examined === 0) {
     return (
-      <AppText variant="caption" tone="muted">
+      <AppText variant="caption" tone="muted" style={styles.meta}>
         No FLAC files found in the media library sample.
       </AppText>
     );
@@ -114,19 +113,26 @@ function ReportSummary({ report }: { report: FlacVerifyReport }) {
 }
 
 const styles = StyleSheet.create({
-  card: {
+  wrap: {
+    gap: Spacing.two,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.three,
+    paddingVertical: Spacing.three,
   },
   copy: {
+    flex: 1,
     gap: Spacing.half,
+    minWidth: 0,
   },
-  action: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.four,
+  meta: {
+    paddingBottom: Spacing.two,
   },
   report: {
     gap: Spacing.one,
+    paddingBottom: Spacing.two,
   },
 });
