@@ -29,16 +29,10 @@ export default function SettingsScreen() {
       <SettingsSection title="Library">
         <SettingsRow title="Rescan library" detail="Coming soon" />
         <SettingsRow
-          title="Library folders"
+          title="Folder visibility"
           detail="Choose"
-          hint="Show or hide folders that contain audio in Songs"
+          hint="Choose which folders appear in Songs, Albums, and Artists"
           onPress={() => router.push('/library-folders' as Href)}
-        />
-        <SettingsRow
-          title="Folders"
-          detail="Browse"
-          hint="Device folders as a stack screen (not a tab)"
-          onPress={() => router.push('/folders' as Href)}
         />
         <AudioPermissionControl />
         <FlacVerifyControl />

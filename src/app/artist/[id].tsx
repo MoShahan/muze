@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { AlbumListItem } from '@/components/library/album-list-item';
-import { DetailHero } from '@/components/library/detail-hero';
+import { DetailActions } from '@/components/library/detail-actions';
 import { LibraryBrowser } from '@/components/library/library-browser';
 import { TrackListItem } from '@/components/library/track-list-item';
 import { AppText } from '@/components/ui/app-text';
@@ -12,7 +12,9 @@ import { listAlbumsForArtist, type AlbumRow } from '@/lib/db/albums';
 import { getArtistById, type ArtistRow } from '@/lib/db/artists';
 import { listTracksForArtist, type CachedTrackRow } from '@/lib/db/tracks';
 import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { albumsFromTracks, filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
 import { playTrackList } from '@/lib/library/play-tracks';
+import { useLibraryVisibility } from '@/store/library-visibility-provider';
 import { usePlayback } from '@/store/playback-provider';
 
 type ArtistListRow =
@@ -24,6 +26,7 @@ export default function ArtistDetailScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = typeof rawId === 'string' ? decodeURIComponent(rawId) : '';
   const db = useSQLiteContext();
+  const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
   const { setCurrentTrack, setQueue } = usePlayback();
   const [artist, setArtist] = useState<ArtistRow | null>(null);
   const [albums, setAlbums] = useState<AlbumRow[]>([]);
@@ -49,10 +52,14 @@ export default function ArtistDetailScreen() {
           }
           return;
         }
-        const [nextAlbums, nextTracks] = await Promise.all([
-          listAlbumsForArtist(db, nextArtist.name),
-          listTracksForArtist(db, nextArtist.name),
-        ]);
+        const nextTracks = filterTracksExcludingFolders(
+          await listTracksForArtist(db, nextArtist.name),
+          hiddenFolderPaths,
+        );
+        const nextAlbums =
+          hiddenFolderPaths.size === 0
+            ? await listAlbumsForArtist(db, nextArtist.name)
+            : albumsFromTracks(nextTracks);
         if (!cancelled) {
           setArtist(nextArtist);
           setAlbums(nextAlbums);
@@ -67,7 +74,7 @@ export default function ArtistDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [db, id]);
+  }, [db, id, hiddenFolderPaths, visibilityRevision]);
 
   const listData = useMemo(() => {
     const filteredAlbums = albums.filter(
@@ -183,9 +190,7 @@ export default function ArtistDetailScreen() {
       onBack={() => router.back()}
       headerExtra={
         artist ? (
-          <DetailHero
-            artworkUri={null}
-            roundArt
+          <DetailActions
             disabled={tracks.length === 0}
             onPlay={() => playFrom(tracks[0]?.id ?? null, false)}
             onShuffle={() => playFrom(null, true)}

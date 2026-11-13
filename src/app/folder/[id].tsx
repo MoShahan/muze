@@ -3,7 +3,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { DetailHero } from '@/components/library/detail-hero';
+import { DetailActions } from '@/components/library/detail-actions';
 import { LibraryBrowser } from '@/components/library/library-browser';
 import { TrackListItem } from '@/components/library/track-list-item';
 import { TrackSortControl } from '@/components/library/track-sort-control';
@@ -125,8 +125,7 @@ export default function FolderDetailScreen() {
       headerExtra={
         folder ? (
           <View style={{ gap: 12 }}>
-            <DetailHero
-              artworkUri={null}
+            <DetailActions
               disabled={tracks.length === 0}
               onPlay={() => playFrom(filteredTracks[0]?.id ?? tracks[0]?.id ?? null, false)}
               onShuffle={() => playFrom(null, true)}

@@ -1,11 +1,8 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { LibraryArtwork } from '@/components/library/library-artwork';
 import { AppText } from '@/components/ui/app-text';
 import { Spacing } from '@/constants/theme';
-
-const ART_SIZE = 48;
 
 type ArtistListItemProps = {
   id: string;
@@ -14,6 +11,7 @@ type ArtistListItemProps = {
   onPressId: (id: string) => void;
 };
 
+/** Artists have no portrait in tags — name + counts only (no art placeholder). */
 export const ArtistListItem = memo(function ArtistListItem({
   id,
   name,
@@ -27,7 +25,6 @@ export const ArtistListItem = memo(function ArtistListItem({
       onPress={() => onPressId(id)}
       style={styles.row}
     >
-      <LibraryArtwork uri={null} size={ART_SIZE} round />
       <View style={styles.copy}>
         <AppText variant="bodyStrong" numberOfLines={1}>
           {name}
@@ -44,9 +41,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
     paddingVertical: Spacing.two,
-    minHeight: 64,
+    minHeight: 56,
   },
   copy: {
     flex: 1,

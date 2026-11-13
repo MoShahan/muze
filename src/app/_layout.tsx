@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DatabaseProvider } from '@/store/database-provider';
+import { LibraryVisibilityProvider } from '@/store/library-visibility-provider';
 import { PlaybackProvider } from '@/store/playback-provider';
 import { ThemeProvider, useTheme } from '@/store/theme-provider';
 
@@ -34,6 +35,7 @@ function RootNavigator() {
       />
       <Stack.Screen name="search" />
       <Stack.Screen name="folders" />
+      <Stack.Screen name="library-folders" />
       <Stack.Screen name="album/[id]" />
       <Stack.Screen name="artist/[id]" />
       <Stack.Screen name="folder/[id]" />
@@ -47,9 +49,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <DatabaseProvider>
         <ThemeProvider>
-          <PlaybackProvider>
-            <RootNavigator />
-          </PlaybackProvider>
+          <LibraryVisibilityProvider>
+            <PlaybackProvider>
+              <RootNavigator />
+            </PlaybackProvider>
+          </LibraryVisibilityProvider>
         </ThemeProvider>
       </DatabaseProvider>
     </GestureHandlerRootView>

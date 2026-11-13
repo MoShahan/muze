@@ -6,9 +6,11 @@ import { FolderListItem } from '@/components/library/folder-list-item';
 import { LibraryBrowser } from '@/components/library/library-browser';
 import { listFolders, type FolderRow } from '@/lib/db/folders';
 import { matchesLibraryQuery } from '@/lib/library/filter';
+import { useLibraryVisibility } from '@/store/library-visibility-provider';
 
 export default function FoldersScreen() {
   const db = useSQLiteContext();
+  const { isFolderIncluded, revision: visibilityRevision } = useLibraryVisibility();
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -45,15 +47,16 @@ export default function FoldersScreen() {
     return () => {
       cancelled = true;
     };
-  }, [db]);
+  }, [db, visibilityRevision]);
 
   const filtered = useMemo(
     () =>
       folders.filter(
         (folder) =>
-          matchesLibraryQuery(folder.name, query) || matchesLibraryQuery(folder.path, query),
+          isFolderIncluded(folder.path) &&
+          (matchesLibraryQuery(folder.name, query) || matchesLibraryQuery(folder.path, query)),
       ),
-    [folders, query],
+    [folders, query, isFolderIncluded],
   );
 
   const onPressFolder = useCallback((id: string) => {

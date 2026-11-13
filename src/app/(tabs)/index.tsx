@@ -110,7 +110,7 @@ export default function SongsScreen() {
     : status === 'error'
       ? (errorMessage ?? 'Scan failed')
       : isScanning
-        ? `Scanning… ${count} files (batch ${batchIndex + 1})`
+        ? `Scanning… ${count} files (batch ${batchIndex + 1}) · ${filteredTracks.length} shown`
         : `${libraryCounts.tracks} songs · ${libraryCounts.albums} albums · ${libraryCounts.artists} artists`;
 
   if (isLoading) {
@@ -156,20 +156,22 @@ export default function SongsScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       emptyTitle={
-        tracksLoading || isScanning
+        tracksLoading
           ? 'Loading library…'
-          : query.trim()
-            ? 'No matching songs'
-            : 'No songs yet'
+          : isScanning
+            ? 'Finding songs…'
+            : query.trim()
+              ? 'No matching songs'
+              : 'No songs yet'
       }
       emptySubtitle={
         tracksLoading || isScanning
-          ? 'Reading device audio into SQLite.'
+          ? 'First scan only: tracks appear after each batch. Short clips under 30s are skipped.'
           : query.trim()
             ? 'Try a different title, artist, or album.'
             : 'Pull to refresh after adding music on this device.'
       }
-      refreshing={isScanning}
+      refreshing={isScanning && filteredTracks.length === 0}
       onRefresh={() => {
         void (async () => {
           await rescan();

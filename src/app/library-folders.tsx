@@ -91,7 +91,7 @@ export default function LibraryFoldersScreen() {
           <Ionicons name="chevron-back" size={22} color={colors.text} />
           <AppText variant="label">Back</AppText>
         </Pressable>
-        <AppText variant="display">Library folders</AppText>
+        <AppText variant="display">Folder visibility</AppText>
         <AppText variant="subtitle" tone="secondary">
           Only folders that contain audio are listed. Uncheck any you do not want in Songs, Albums,
           or Artists.

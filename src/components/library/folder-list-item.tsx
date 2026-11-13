@@ -2,8 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { NeoSurface } from '@/components/ui/neo-surface';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 type FolderListItemProps = {
   id: string;
@@ -13,6 +12,7 @@ type FolderListItemProps = {
   onPressId: (id: string) => void;
 };
 
+/** Folders have no cover art — name, path, and count only. */
 export const FolderListItem = memo(function FolderListItem({
   id,
   name,
@@ -27,7 +27,6 @@ export const FolderListItem = memo(function FolderListItem({
       onPress={() => onPressId(id)}
       style={styles.row}
     >
-      <NeoSurface variant="pressed" radius={Radius.md} style={styles.icon} />
       <View style={styles.copy}>
         <AppText variant="bodyStrong" numberOfLines={1}>
           {name}
@@ -47,13 +46,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
     paddingVertical: Spacing.two,
-    minHeight: 72,
-  },
-  icon: {
-    width: 48,
-    height: 48,
+    minHeight: 64,
   },
   copy: {
     flex: 1,

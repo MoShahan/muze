@@ -10,14 +10,17 @@ import { TrackSortControl } from '@/components/library/track-sort-control';
 import { getAlbumById, type AlbumRow } from '@/lib/db/albums';
 import { listTracksForAlbum, type CachedTrackRow } from '@/lib/db/tracks';
 import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
 import { playTrackList } from '@/lib/library/play-tracks';
 import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
+import { useLibraryVisibility } from '@/store/library-visibility-provider';
 import { usePlayback } from '@/store/playback-provider';
 
 export default function AlbumDetailScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = typeof rawId === 'string' ? decodeURIComponent(rawId) : '';
   const db = useSQLiteContext();
+  const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
   const { setCurrentTrack, setQueue } = usePlayback();
   const [album, setAlbum] = useState<AlbumRow | null>(null);
   const [tracks, setTracks] = useState<CachedTrackRow[]>([]);
@@ -42,7 +45,10 @@ export default function AlbumDetailScreen() {
           }
           return;
         }
-        const nextTracks = await listTracksForAlbum(db, nextAlbum.title, nextAlbum.artist);
+        const nextTracks = filterTracksExcludingFolders(
+          await listTracksForAlbum(db, nextAlbum.title, nextAlbum.artist),
+          hiddenFolderPaths,
+        );
         if (!cancelled) {
           setAlbum(nextAlbum);
           setTracks(nextTracks);
@@ -56,7 +62,7 @@ export default function AlbumDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [db, id]);
+  }, [db, id, hiddenFolderPaths, visibilityRevision]);
 
   const filteredTracks = useMemo(() => {
     const filtered = tracks.filter(
