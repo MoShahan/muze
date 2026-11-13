@@ -9,6 +9,8 @@ export const SETTINGS_KEYS = {
   themePreference: 'theme_preference',
   displayName: 'display_name',
   trackSort: 'track_sort',
+  /** JSON string array of folder_path values excluded from Songs / library lists. */
+  hiddenFolderPaths: 'hidden_folder_paths',
 } as const;
 
 const THEME_PREFERENCES = new Set<ThemePreference>(['system', 'light', 'dark']);
@@ -61,4 +63,37 @@ export async function getTrackSort(db: SQLiteDatabase): Promise<TrackSortKey> {
 
 export async function setTrackSort(db: SQLiteDatabase, sortKey: TrackSortKey): Promise<void> {
   await setSetting(db, SETTINGS_KEYS.trackSort, sortKey);
+}
+
+export async function getHiddenFolderPaths(db: SQLiteDatabase): Promise<string[]> {
+  const value = await getSetting(db, SETTINGS_KEYS.hiddenFolderPaths);
+  if (!value) {
+    return [];
+  }
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return [
+      ...new Set(
+        parsed
+          .filter((item): item is string => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0),
+      ),
+    ].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  } catch {
+    return [];
+  }
+}
+
+export async function setHiddenFolderPaths(
+  db: SQLiteDatabase,
+  folderPaths: readonly string[],
+): Promise<void> {
+  const normalized = [
+    ...new Set(folderPaths.map((item) => item.trim()).filter((item) => item.length > 0)),
+  ].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  await setSetting(db, SETTINGS_KEYS.hiddenFolderPaths, JSON.stringify(normalized));
 }
