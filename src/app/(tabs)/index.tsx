@@ -15,7 +15,7 @@ import { useAudioLibraryScan } from '@/hooks/use-audio-library-scan';
 export default function SongsScreen() {
   const { isLoading, isGranted, isUndetermined, canAskAgain, request, openSettings } =
     useAudioLibraryPermission();
-  const { status, count, errorMessage, isScanning, rescan } = useAudioLibraryScan({
+  const { status, count, batchIndex, errorMessage, isScanning, rescan } = useAudioLibraryScan({
     enabled: isGranted,
   });
   const [busy, setBusy] = useState(false);
@@ -68,7 +68,7 @@ export default function SongsScreen() {
           <NeoCard>
             <NeoCard.Title>
               {isScanning
-                ? 'Scanning device audio…'
+                ? `Scanning… ${count} file${count === 1 ? '' : 's'}`
                 : status === 'error'
                   ? 'Scan failed'
                   : count === 0
@@ -78,7 +78,9 @@ export default function SongsScreen() {
             <AppText variant="subtitle" tone="secondary">
               {status === 'error'
                 ? (errorMessage ?? 'Could not read the media library.')
-                : 'Tag parsing and the full song list come next. This scan only lists audio files.'}
+                : isScanning
+                  ? `Reading audio in batches (batch ${batchIndex + 1}). The full library is not kept in memory.`
+                  : 'Tag parsing and the full song list come next. This scan only lists audio files.'}
             </AppText>
           </NeoCard>
 

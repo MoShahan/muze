@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { scanAudioAssets, type ScannedAudioAsset } from '@/lib/media/scan';
+import { scanAudioLibrary, type AudioScanProgress } from '@/lib/media/scan';
 
 type ScanStatus = 'idle' | 'scanning' | 'ready' | 'error';
 
@@ -9,25 +9,67 @@ type UseAudioLibraryScanOptions = {
   enabled: boolean;
 };
 
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
 export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
   const [status, setStatus] = useState<ScanStatus>('idle');
-  const [assets, setAssets] = useState<ScannedAudioAsset[]>([]);
+  const [scannedCount, setScannedCount] = useState(0);
+  const [batchIndex, setBatchIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const runIdRef = useRef(0);
 
   const runScan = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const runId = runIdRef.current + 1;
+    runIdRef.current = runId;
+
+    // Defer state updates so callers inside effects do not sync-setState in the effect body.
+    await Promise.resolve();
+    if (runIdRef.current !== runId || controller.signal.aborted) {
+      return null;
+    }
+
     setStatus('scanning');
+    setScannedCount(0);
+    setBatchIndex(0);
     setErrorMessage(null);
+
     try {
-      const next = await scanAudioAssets();
-      setAssets(next);
+      const finalProgress = await scanAudioLibrary({
+        signal: controller.signal,
+        onBatch: (_batch, progress: AudioScanProgress) => {
+          if (runIdRef.current !== runId) {
+            return;
+          }
+          // Only keep counters — do not store every asset in React state.
+          setScannedCount(progress.scannedCount);
+          setBatchIndex(progress.batchIndex);
+        },
+      });
+
+      if (runIdRef.current !== runId) {
+        return null;
+      }
+
+      setScannedCount(finalProgress.scannedCount);
+      setBatchIndex(finalProgress.batchIndex);
       setStatus('ready');
-      return next;
+      return finalProgress;
     } catch (error) {
+      if (isAbortError(error) || runIdRef.current !== runId) {
+        return null;
+      }
       const message = error instanceof Error ? error.message : 'Audio scan failed';
-      setAssets([]);
+      setScannedCount(0);
+      setBatchIndex(0);
       setErrorMessage(message);
       setStatus('error');
-      return [];
+      return null;
     }
   }, []);
 
@@ -36,35 +78,18 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       return;
     }
 
-    let cancelled = false;
-    void (async () => {
-      setStatus('scanning');
-      setErrorMessage(null);
-      try {
-        const next = await scanAudioAssets();
-        if (!cancelled) {
-          setAssets(next);
-          setStatus('ready');
-        }
-      } catch (error) {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : 'Audio scan failed';
-          setAssets([]);
-          setErrorMessage(message);
-          setStatus('error');
-        }
-      }
-    })();
+    void runScan();
 
     return () => {
-      cancelled = true;
+      abortRef.current?.abort();
     };
-  }, [enabled]);
+  }, [enabled, runScan]);
 
   if (!enabled) {
     return {
       status: 'idle' as const,
-      assets: [] as ScannedAudioAsset[],
+      scannedCount: 0,
+      batchIndex: 0,
       count: 0,
       errorMessage: null,
       isScanning: false,
@@ -74,8 +99,9 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
 
   return {
     status,
-    assets,
-    count: assets.length,
+    scannedCount,
+    batchIndex,
+    count: scannedCount,
     errorMessage,
     isScanning: status === 'scanning',
     rescan: runScan,
