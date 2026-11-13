@@ -18,9 +18,17 @@ type WaveformSeekbarProps = {
   progress: number;
   durationMs: number;
   onSeek: (progress: number) => void;
+  /** Soft placeholder while real peaks generate; seeking still works. */
+  isPlaceholder?: boolean;
 };
 
-export function WaveformSeekbar({ peaks, progress, durationMs, onSeek }: WaveformSeekbarProps) {
+export function WaveformSeekbar({
+  peaks,
+  progress,
+  durationMs,
+  onSeek,
+  isPlaceholder = false,
+}: WaveformSeekbarProps) {
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
 
@@ -62,14 +70,17 @@ export function WaveformSeekbar({ peaks, progress, durationMs, onSeek }: Wavefor
   return (
     <View style={styles.container}>
       <GestureDetector gesture={gesture}>
-        <View style={styles.waveHit} onLayout={onLayout}>
+        <View
+          style={[styles.waveHit, isPlaceholder ? styles.placeholder : null]}
+          onLayout={onLayout}
+        >
           {width > 0 ? (
             <Svg width={width} height={height}>
               {peaks.map((peak, index) => {
                 const barHeight = Math.max(4, peak * height);
                 const x = index * (barWidth + gap);
                 const y = (height - barHeight) / 2;
-                const played = index / barCount <= progress;
+                const played = !isPlaceholder && index / barCount <= progress;
                 return (
                   <Rect
                     key={index}
@@ -105,6 +116,9 @@ const styles = StyleSheet.create({
   waveHit: {
     height: 56,
     justifyContent: 'center',
+  },
+  placeholder: {
+    opacity: 0.45,
   },
   times: {
     flexDirection: 'row',

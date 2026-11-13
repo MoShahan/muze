@@ -7,8 +7,8 @@ import { PlayerHeader } from '@/components/player/player-header';
 import { SongInformation } from '@/components/player/song-information';
 import { VinylRecord } from '@/components/player/vinyl-record';
 import { WaveformSeekbar } from '@/components/player/waveform-seekbar';
-import { MOCK_WAVEFORM_PEAKS } from '@/constants/mock-player';
 import { Spacing } from '@/constants/theme';
+import { useTrackWaveform } from '@/hooks/use-track-waveform';
 import { usePlayback } from '@/store/playback-provider';
 import { useTheme } from '@/store/theme-provider';
 
@@ -29,6 +29,10 @@ export default function PlayerScreen() {
   } = usePlayback();
 
   const [favorited, setFavorited] = useState(false);
+  const { peaks, isPlaceholder } = useTrackWaveform({
+    trackId: currentTrack?.id,
+    uri: currentTrack?.uri,
+  });
 
   const title = currentTrack?.title ?? 'No track';
   const artist = currentTrack?.artist ?? 'Select a song to play';
@@ -66,9 +70,10 @@ export default function PlayerScreen() {
         />
 
         <WaveformSeekbar
-          peaks={MOCK_WAVEFORM_PEAKS}
+          peaks={peaks}
           progress={progress}
           durationMs={trackDurationMs}
+          isPlaceholder={isPlaceholder}
           onSeek={(nextProgress) => {
             seekToMs(nextProgress * trackDurationMs);
           }}
