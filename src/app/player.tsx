@@ -95,7 +95,7 @@ export default function PlayerScreen() {
       <PlayerHeader trackId={currentTrack?.id} />
 
       <View style={styles.vinylBlock}>
-        <VinylRecord isPlaying={isPlaying} />
+        <VinylRecord isPlaying={isPlaying} artworkUri={currentTrack?.artworkUri} />
       </View>
 
       <View style={styles.lower}>

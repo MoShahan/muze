@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
@@ -11,10 +12,14 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Spacing, neoRaisedShadow } from '@/constants/theme';
+import { artworkDisplayUri } from '@/lib/db/tracks';
 import { useTheme } from '@/store/theme-provider';
 
 type VinylRecordProps = {
   isPlaying: boolean;
+  /** Cached album art for the disc center label. */
+  artworkUri?: string | null;
+  /** Fallback center text when art is missing. */
   label?: string;
 };
 
@@ -24,12 +29,13 @@ const GROOVE_RATIOS = [0.92, 0.84, 0.76, 0.68, 0.6, 0.52];
 const ARM_PLAYING_DEG = 32;
 const ARM_RESTING_DEG = -6;
 
-export function VinylRecord({ isPlaying, label = 'MUZE' }: VinylRecordProps) {
+export function VinylRecord({ isPlaying, artworkUri, label = 'MUZE' }: VinylRecordProps) {
   const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const size = Math.min(width * 0.72, 300);
   const labelSize = size * 0.38;
   const spindleSize = size * 0.06;
+  const artUri = artworkDisplayUri(artworkUri);
   const rotation = useSharedValue(0);
   const armDown = useSharedValue(isPlaying ? 1 : 0);
 
@@ -121,7 +127,21 @@ export function VinylRecord({ isPlaying, label = 'MUZE' }: VinylRecordProps) {
               },
             ]}
           >
-            <Text style={[styles.labelText, { color: colors.text }]}>{label}</Text>
+            {artUri ? (
+              <Image
+                source={{ uri: artUri }}
+                style={{
+                  width: labelSize,
+                  height: labelSize,
+                  borderRadius: labelSize / 2,
+                }}
+                contentFit="cover"
+                recyclingKey={artUri}
+                transition={160}
+              />
+            ) : (
+              <Text style={[styles.labelText, { color: colors.text }]}>{label}</Text>
+            )}
             <View
               style={[
                 styles.spindle,
@@ -212,6 +232,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.one,
+    overflow: 'hidden',
   },
   labelText: {
     fontSize: 16,
@@ -220,6 +241,7 @@ const styles = StyleSheet.create({
   },
   spindle: {
     position: 'absolute',
+    zIndex: 1,
   },
   armAnchor: {
     position: 'absolute',
