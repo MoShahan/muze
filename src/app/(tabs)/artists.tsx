@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 
 import { ArtistListItem } from '@/components/library/artist-list-item';
 import { LibraryBrowser } from '@/components/library/library-browser';
+import { LibraryPermissionScreen } from '@/components/library/library-permission-screen';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
 import { useLibraryArtists } from '@/hooks/use-library-artists';
 
@@ -38,14 +39,16 @@ export default function ArtistsScreen() {
     [onPressArtist],
   );
 
+  if (!isGranted) {
+    return <LibraryPermissionScreen title="Artists" />;
+  }
+
+  const hasQuery = query.trim().length > 0;
+
   return (
     <LibraryBrowser
       title="Artists"
-      statusMessage={
-        isGranted
-          ? `${filteredArtists.length} artist${filteredArtists.length === 1 ? '' : 's'}`
-          : 'Audio permission required'
-      }
+      statusMessage={`${filteredArtists.length} artist${filteredArtists.length === 1 ? '' : 's'}`}
       searchValue={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search artists"
@@ -53,22 +56,14 @@ export default function ArtistsScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       emptyTitle={
-        !isGranted
-          ? 'Allow audio access'
-          : isLoading
-            ? 'Loading artists…'
-            : query.trim()
-              ? 'No matching artists'
-              : 'No artists yet'
+        isLoading ? 'Loading artists…' : hasQuery ? 'No matching artists' : 'No artists yet'
       }
       emptySubtitle={
-        !isGranted
-          ? 'Open the Songs tab to grant audio permission and scan.'
-          : isLoading
-            ? 'Grouped from track tags in SQLite.'
-            : query.trim()
-              ? 'Try a different artist name.'
-              : 'Scan from the Songs tab to build artist groups.'
+        isLoading
+          ? 'Grouped from track tags in SQLite.'
+          : hasQuery
+            ? 'Try a different artist name.'
+            : 'Scan from the Songs tab after adding music on this device.'
       }
       refreshing={isLoading}
       onRefresh={() => {

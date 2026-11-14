@@ -184,7 +184,7 @@ export default function PlaylistDetailScreen() {
         renderItem={renderItem}
         emptyTitle={
           isLoading
-            ? 'Loading…'
+            ? 'Loading playlist…'
             : playlist
               ? query.trim()
                 ? 'No matching tracks'
@@ -196,9 +196,17 @@ export default function PlaylistDetailScreen() {
             ? 'Reading playlist from SQLite.'
             : playlist
               ? query.trim()
-                ? 'Try a different search.'
-                : 'Tap Add songs to fill this playlist.'
+                ? 'Try a different title, artist, or album.'
+                : 'Add songs from your library to fill this playlist.'
               : 'It may have been deleted.'
+        }
+        emptyActionLabel={
+          playlist && !isLoading && !query.trim() && tracks.length === 0 ? 'Add songs' : undefined
+        }
+        onEmptyAction={
+          playlist && !isLoading && !query.trim() && tracks.length === 0
+            ? () => router.push(`/playlist/${encodeURIComponent(id)}/add` as Href)
+            : undefined
         }
         onBack={() => router.back()}
         refreshing={isLoading && tracks.length === 0}

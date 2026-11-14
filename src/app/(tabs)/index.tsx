@@ -108,13 +108,33 @@ export default function SongsScreen() {
     [onPressTrack],
   );
 
+  const hasQuery = query.trim().length > 0;
+  const scanFailed = status === 'error';
   const statusMessage = !isGranted
     ? null
-    : status === 'error'
+    : scanFailed
       ? (errorMessage ?? 'Scan failed')
       : isScanning
         ? `Scanning… ${count} files (batch ${batchIndex + 1}) · ${filteredTracks.length} shown`
         : `${libraryCounts.tracks} songs · ${libraryCounts.albums} albums · ${libraryCounts.artists} artists`;
+
+  const emptyTitle = tracksLoading
+    ? 'Loading library…'
+    : isScanning
+      ? 'Finding songs…'
+      : scanFailed
+        ? 'Could not scan library'
+        : hasQuery
+          ? 'No matching songs'
+          : 'No music on this device';
+  const emptySubtitle =
+    tracksLoading || isScanning
+      ? 'First scan only: tracks appear after each batch. Short clips under 30s are skipped.'
+      : scanFailed
+        ? (errorMessage ?? 'Something went wrong while reading audio files. Try again.')
+        : hasQuery
+          ? 'Try a different title, artist, or album.'
+          : 'Add songs to device storage, then pull to refresh.';
 
   if (isLoading) {
     return (
@@ -158,21 +178,19 @@ export default function SongsScreen() {
       data={filteredTracks}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
-      emptyTitle={
-        tracksLoading
-          ? 'Loading library…'
-          : isScanning
-            ? 'Finding songs…'
-            : query.trim()
-              ? 'No matching songs'
-              : 'No songs yet'
-      }
-      emptySubtitle={
-        tracksLoading || isScanning
-          ? 'First scan only: tracks appear after each batch. Short clips under 30s are skipped.'
-          : query.trim()
-            ? 'Try a different title, artist, or album.'
-            : 'Pull to refresh after adding music on this device.'
+      emptyTitle={emptyTitle}
+      emptySubtitle={emptySubtitle}
+      emptyTone={scanFailed ? 'error' : 'neutral'}
+      emptyActionLabel={scanFailed ? 'Try again' : undefined}
+      onEmptyAction={
+        scanFailed
+          ? () => {
+              void (async () => {
+                await rescan();
+                await refresh();
+              })();
+            }
+          : undefined
       }
       refreshing={isScanning && filteredTracks.length === 0}
       onRefresh={() => {

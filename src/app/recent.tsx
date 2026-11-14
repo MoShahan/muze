@@ -89,13 +89,17 @@ export default function RecentScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       emptyTitle={
-        isLoading ? 'Loading…' : query.trim() ? 'No matching tracks' : 'Nothing played yet'
+        isLoading
+          ? 'Loading recently played…'
+          : query.trim()
+            ? 'No matching tracks'
+            : 'Nothing played yet'
       }
       emptySubtitle={
         isLoading
-          ? 'Reading play history.'
+          ? 'Reading play history from SQLite.'
           : query.trim()
-            ? 'Try a different search.'
+            ? 'Try a different title, artist, or album.'
             : 'Play a song from Songs, Albums, or a playlist to build this list.'
       }
       onBack={() => router.back()}

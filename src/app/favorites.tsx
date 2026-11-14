@@ -91,14 +91,18 @@ export default function FavoritesScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       emptyTitle={
-        isLoading ? 'Loading…' : query.trim() ? 'No matching favorites' : 'No favorites yet'
+        isLoading
+          ? 'Loading favorites…'
+          : query.trim()
+            ? 'No matching favorites'
+            : 'No favorites yet'
       }
       emptySubtitle={
         isLoading
-          ? 'Reading liked tracks.'
+          ? 'Reading liked tracks from SQLite.'
           : query.trim()
-            ? 'Try a different search.'
-            : 'Tap the heart on the now-playing screen to save a track here.'
+            ? 'Try a different title, artist, or album.'
+            : 'Tap the heart on now-playing to save a track here. Favorites stay pinned on the Playlists tab.'
       }
       onBack={() => router.back()}
       refreshing={isLoading && tracks.length === 0}

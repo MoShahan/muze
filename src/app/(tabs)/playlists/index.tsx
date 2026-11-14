@@ -4,13 +4,16 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { NamePromptModal } from '@/components/collections/name-prompt-modal';
+import { LibraryPermissionScreen } from '@/components/library/library-permission-screen';
 import { LibrarySearchField } from '@/components/library/library-search-field';
+import { LibraryStatusCard } from '@/components/library/library-status-card';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSection } from '@/components/settings/settings-section';
 import { AppText } from '@/components/ui/app-text';
 import { NeoSurface } from '@/components/ui/neo-surface';
 import { Screen } from '@/components/ui/screen';
 import { Radius, Spacing } from '@/constants/theme';
+import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
 import { countFavorites } from '@/lib/db/favorites';
 import { createPlaylist, listPlaylists, type PlaylistRow } from '@/lib/db/playlists';
 import { countRecents } from '@/lib/db/recents';
@@ -33,6 +36,7 @@ type LibraryShortcut = {
  */
 export default function PlaylistsScreen() {
   const db = useSQLiteContext();
+  const { isGranted } = useAudioLibraryPermission();
   const [playlists, setPlaylists] = useState<PlaylistRow[]>([]);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [recentCount, setRecentCount] = useState(0);
@@ -116,8 +120,14 @@ export default function PlaylistsScreen() {
     })();
   };
 
+  if (!isGranted) {
+    return <LibraryPermissionScreen title="Playlists" />;
+  }
+
   const hasQuery = query.trim().length > 0;
-  const showEmpty = hasQuery && filteredShortcuts.length === 0 && filteredPlaylists.length === 0;
+  const showSearchEmpty =
+    hasQuery && filteredShortcuts.length === 0 && filteredPlaylists.length === 0;
+  const showNoPlaylists = !hasQuery && filteredPlaylists.length === 0;
 
   return (
     <Screen scroll contentStyle={styles.content}>
@@ -125,10 +135,11 @@ export default function PlaylistsScreen() {
 
       <LibrarySearchField value={query} onChangeText={setQuery} placeholder="Search playlists" />
 
-      {showEmpty ? (
-        <AppText variant="body" tone="secondary">
-          No matching playlists or library rows.
-        </AppText>
+      {showSearchEmpty ? (
+        <LibraryStatusCard
+          title="No matching playlists"
+          subtitle="Try a different name, or clear search to see Folders, Favorites, and your lists."
+        />
       ) : null}
 
       {filteredShortcuts.length > 0 ? (
@@ -145,13 +156,17 @@ export default function PlaylistsScreen() {
         </SettingsSection>
       ) : null}
 
-      {!showEmpty ? (
+      {!showSearchEmpty ? (
         <SettingsSection title="Your playlists">
-          {filteredPlaylists.length === 0 ? (
-            <SettingsRow
-              title={hasQuery ? 'No matching playlists' : 'No playlists yet'}
-              hint={hasQuery ? 'Try a different name' : 'Create one to group songs you like'}
+          {showNoPlaylists ? (
+            <LibraryStatusCard
+              title="No playlists yet"
+              subtitle="Create a playlist to group songs you like. Favorites stay pinned above."
+              actionLabel="New playlist"
+              onAction={openCreate}
             />
+          ) : filteredPlaylists.length === 0 ? (
+            <LibraryStatusCard title="No matching playlists" subtitle="Try a different name." />
           ) : (
             filteredPlaylists.map((playlist) => (
               <SettingsRow

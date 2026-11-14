@@ -5,6 +5,7 @@ import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LibrarySearchField } from '@/components/library/library-search-field';
+import { LibraryStatusCard } from '@/components/library/library-status-card';
 import { MINI_PLAYER_HEIGHT } from '@/components/player/mini-player';
 import { AppText } from '@/components/ui/app-text';
 import { Spacing } from '@/constants/theme';
@@ -24,6 +25,9 @@ type LibraryBrowserProps<T> = {
   renderItem: ListRenderItem<T>;
   emptyTitle: string;
   emptySubtitle: string;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
+  emptyTone?: 'neutral' | 'error';
   refreshing?: boolean;
   onRefresh?: () => void;
   headerExtra?: ReactNode;
@@ -43,6 +47,9 @@ export function LibraryBrowser<T>({
   renderItem,
   emptyTitle,
   emptySubtitle,
+  emptyActionLabel,
+  onEmptyAction,
+  emptyTone = 'neutral',
   refreshing = false,
   onRefresh,
   headerExtra,
@@ -123,10 +130,13 @@ export function LibraryBrowser<T>({
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <AppText variant="bodyStrong">{emptyTitle}</AppText>
-            <AppText variant="subtitle" tone="secondary">
-              {emptySubtitle}
-            </AppText>
+            <LibraryStatusCard
+              title={emptyTitle}
+              subtitle={emptySubtitle}
+              actionLabel={emptyActionLabel}
+              onAction={onEmptyAction}
+              tone={emptyTone}
+            />
           </View>
         }
       />

@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 
 import { AlbumListItem } from '@/components/library/album-list-item';
 import { LibraryBrowser } from '@/components/library/library-browser';
+import { LibraryPermissionScreen } from '@/components/library/library-permission-screen';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
 import { useLibraryAlbums } from '@/hooks/use-library-albums';
 
@@ -40,37 +41,29 @@ export default function AlbumsScreen() {
     [onPressAlbum],
   );
 
+  if (!isGranted) {
+    return <LibraryPermissionScreen title="Albums" />;
+  }
+
+  const hasQuery = query.trim().length > 0;
+
   return (
     <LibraryBrowser
       title="Albums"
-      statusMessage={
-        isGranted
-          ? `${filteredAlbums.length} album${filteredAlbums.length === 1 ? '' : 's'}`
-          : 'Audio permission required'
-      }
+      statusMessage={`${filteredAlbums.length} album${filteredAlbums.length === 1 ? '' : 's'}`}
       searchValue={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search albums"
       data={filteredAlbums}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
-      emptyTitle={
-        !isGranted
-          ? 'Allow audio access'
-          : isLoading
-            ? 'Loading albums…'
-            : query.trim()
-              ? 'No matching albums'
-              : 'No albums yet'
-      }
+      emptyTitle={isLoading ? 'Loading albums…' : hasQuery ? 'No matching albums' : 'No albums yet'}
       emptySubtitle={
-        !isGranted
-          ? 'Open the Songs tab to grant audio permission and scan.'
-          : isLoading
-            ? 'Grouped from track tags in SQLite.'
-            : query.trim()
-              ? 'Try a different album or artist name.'
-              : 'Scan from the Songs tab to build album groups.'
+        isLoading
+          ? 'Grouped from track tags in SQLite.'
+          : hasQuery
+            ? 'Try a different album or artist name.'
+            : 'Scan from the Songs tab after adding music on this device.'
       }
       refreshing={isLoading}
       onRefresh={() => {
