@@ -29,7 +29,7 @@
     "expo-symbols": "~58.0.5",
     "expo-system-ui": "~58.0.7",
     "expo-widgets": "~58.0.28",
-    "music-metadata": "11.8.1",
+    "music-metadata": "^12.5.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",

@@ -46,6 +46,7 @@ function RootNavigator() {
       <Stack.Screen name="folder/[id]" />
       <Stack.Screen name="playlist/[id]" />
       <Stack.Screen name="playlist/[id]/add" />
+      <Stack.Screen name="track/[id]/edit" />
     </Stack>
   );
 }

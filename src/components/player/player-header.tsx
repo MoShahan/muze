@@ -1,16 +1,30 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { type Href, router } from 'expo-router';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/store/theme-provider';
 
 type PlayerHeaderProps = {
   title?: string;
+  trackId?: string | null;
 };
 
-export function PlayerHeader({ title = 'NOW PLAYING' }: PlayerHeaderProps) {
+export function PlayerHeader({ title = 'NOW PLAYING', trackId }: PlayerHeaderProps) {
   const { colors } = useTheme();
+
+  const onMore = () => {
+    if (!trackId) {
+      return;
+    }
+    Alert.alert('Track', undefined, [
+      {
+        text: 'Edit track',
+        onPress: () => router.push(`/track/${encodeURIComponent(trackId)}/edit` as Href),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   return (
     <View style={styles.row}>
@@ -34,6 +48,7 @@ export function PlayerHeader({ title = 'NOW PLAYING' }: PlayerHeaderProps) {
         accessibilityRole="button"
         accessibilityLabel="More options"
         hitSlop={12}
+        onPress={onMore}
         style={styles.side}
       >
         <Ionicons name="ellipsis-horizontal" size={22} color={colors.textSecondary} />

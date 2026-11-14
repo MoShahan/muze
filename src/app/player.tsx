@@ -92,7 +92,7 @@ export default function PlayerScreen() {
         },
       ]}
     >
-      <PlayerHeader />
+      <PlayerHeader trackId={currentTrack?.id} />
 
       <View style={styles.vinylBlock}>
         <VinylRecord isPlaying={isPlaying} />

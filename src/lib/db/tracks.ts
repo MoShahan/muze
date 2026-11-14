@@ -147,6 +147,105 @@ export async function countTracksMissingArtwork(db: SQLiteDatabase): Promise<num
   return row?.count ?? 0;
 }
 
+export async function getTrackById(
+  db: SQLiteDatabase,
+  trackId: string,
+): Promise<CachedTrackRow | null> {
+  const row = await db.getFirstAsync<TrackDbRow>(`${TRACK_SELECT} WHERE id = ?`, [trackId]);
+  return row ? mapTrackRow(row) : null;
+}
+
+export type TrackMetadataUpdate = {
+  title: string;
+  artist: string;
+  album: string;
+  albumArtist: string | null;
+  trackNumber: number | null;
+  year: number | null;
+  genre: string | null;
+};
+
+/** Update embedded-tag fields in SQLite only (after a successful file tag write). */
+export async function updateTrackMetadata(
+  db: SQLiteDatabase,
+  trackId: string,
+  metadata: TrackMetadataUpdate,
+): Promise<void> {
+  await db.runAsync(
+    `UPDATE tracks SET
+       title = ?, artist = ?, album = ?, album_artist = ?, track_number = ?, year = ?, genre = ?,
+       updated_at = ?
+     WHERE id = ?`,
+    [
+      metadata.title,
+      metadata.artist,
+      metadata.album,
+      metadata.albumArtist,
+      metadata.trackNumber,
+      metadata.year,
+      metadata.genre,
+      Date.now(),
+      trackId,
+    ],
+  );
+}
+
+/**
+ * Replace a track row with a new MediaStore identity after create+delete rename/tag replace.
+ * Migrates favorites / playlist_tracks / recents / waveforms to the new id.
+ */
+export async function replaceTrackIdentity(
+  db: SQLiteDatabase,
+  oldId: string,
+  next: UpsertTrackInput,
+): Promise<void> {
+  if (oldId === next.id) {
+    await upsertTracks(db, [next]);
+    return;
+  }
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `INSERT INTO tracks (
+        id, uri, filename, title, artist, album, album_artist, track_number, year, genre,
+        duration_ms, artwork_path, folder_path, date_added, source_modified_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        next.id,
+        next.uri,
+        next.filename,
+        next.title,
+        next.artist,
+        next.album,
+        next.albumArtist,
+        next.trackNumber,
+        next.year,
+        next.genre,
+        next.durationMs,
+        next.artworkPath,
+        next.folderPath,
+        next.dateAdded,
+        next.sourceModifiedAt,
+        Date.now(),
+      ],
+    );
+
+    await db.runAsync(`UPDATE favorites SET track_id = ? WHERE track_id = ?`, [next.id, oldId]);
+    await db.runAsync(`UPDATE playlist_tracks SET track_id = ? WHERE track_id = ?`, [
+      next.id,
+      oldId,
+    ]);
+    await db.runAsync(`UPDATE recents SET track_id = ? WHERE track_id = ?`, [next.id, oldId]);
+    await db.runAsync(`UPDATE waveforms SET track_id = ? WHERE track_id = ?`, [next.id, oldId]);
+    await db.runAsync(`DELETE FROM tracks WHERE id = ?`, [oldId]);
+  });
+}
+
+/** Delete track row; dependent favorites/playlists/recents/waveforms cascade. */
+export async function deleteTrackRow(db: SQLiteDatabase, trackId: string): Promise<void> {
+  await db.runAsync(`DELETE FROM tracks WHERE id = ?`, [trackId]);
+}
+
 /** Album tracks ordered by disc track number when present. */
 export async function listTracksForAlbum(
   db: SQLiteDatabase,

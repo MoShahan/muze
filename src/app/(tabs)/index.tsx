@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { type Href, router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 
 import { AudioPermissionPanel } from '@/components/library/audio-permission-panel';
 import { LibraryBrowser } from '@/components/library/library-browser';
@@ -94,6 +94,16 @@ export default function SongsScreen() {
     [filteredTracks, playTrack, setQueue],
   );
 
+  const onLongPressTrack = useCallback((trackId: string) => {
+    Alert.alert('Track', undefined, [
+      {
+        text: 'Edit',
+        onPress: () => router.push(`/track/${encodeURIComponent(trackId)}/edit` as Href),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, []);
+
   const renderItem = useCallback(
     ({ item }: { item: (typeof filteredTracks)[number] }) => (
       <TrackListItem
@@ -103,9 +113,10 @@ export default function SongsScreen() {
         durationLabel={formatDurationMs(item.durationMs)}
         artworkUri={item.artworkPath}
         onPressId={onPressTrack}
+        onLongPressId={onLongPressTrack}
       />
     ),
-    [onPressTrack],
+    [onPressTrack, onLongPressTrack],
   );
 
   const hasQuery = query.trim().length > 0;
