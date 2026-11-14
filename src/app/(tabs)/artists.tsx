@@ -6,12 +6,15 @@ import { LibraryBrowser } from '@/components/library/library-browser';
 import { LibraryPermissionScreen } from '@/components/library/library-permission-screen';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
 import { useLibraryArtists } from '@/hooks/use-library-artists';
+import { useLibraryScan } from '@/store/library-scan-provider';
 
 export default function ArtistsScreen() {
   const { isGranted } = useAudioLibraryPermission();
+  const { libraryRevision, isScanning, rescan } = useLibraryScan();
   const [query, setQuery] = useState('');
   const { filteredArtists, isLoading, refresh } = useLibraryArtists({
     enabled: isGranted,
+    revision: libraryRevision,
     query,
   });
 
@@ -63,11 +66,11 @@ export default function ArtistsScreen() {
           ? 'Grouped from track tags in SQLite.'
           : hasQuery
             ? 'Try a different artist name.'
-            : 'Scan from the Songs tab after adding music on this device.'
+            : 'Add music on this device, then pull to refresh or rescan in Settings.'
       }
-      refreshing={isLoading}
+      refreshing={isScanning}
       onRefresh={() => {
-        void refresh();
+        void rescan();
       }}
     />
   );

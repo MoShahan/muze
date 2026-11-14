@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { RecentPlayRecorder } from '@/components/collections/recent-play-recorder';
 import { DatabaseProvider } from '@/store/database-provider';
+import { LibraryScanProvider } from '@/store/library-scan-provider';
 import { LibraryVisibilityProvider } from '@/store/library-visibility-provider';
 import { PlaybackProvider } from '@/store/playback-provider';
 import { ThemeProvider, useTheme } from '@/store/theme-provider';
@@ -57,10 +58,12 @@ export default function RootLayout() {
       <DatabaseProvider>
         <ThemeProvider>
           <LibraryVisibilityProvider>
-            <PlaybackProvider>
-              <RecentPlayRecorder />
-              <RootNavigator />
-            </PlaybackProvider>
+            <LibraryScanProvider>
+              <PlaybackProvider>
+                <RecentPlayRecorder />
+                <RootNavigator />
+              </PlaybackProvider>
+            </LibraryScanProvider>
           </LibraryVisibilityProvider>
         </ThemeProvider>
       </DatabaseProvider>

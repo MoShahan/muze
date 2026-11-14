@@ -2,12 +2,12 @@
  * Library scan orchestration hook.
  *
  * Runs the MediaLibrary audio scan in batches, upserts/caches tags + artwork,
- * then finalizes album/artist groups in SQLite. Exists so screens (mainly Songs)
- * get progress, abort-on-unmount, rescan, and a `libraryRevision` bump without
- * owning scan side effects themselves.
+ * then finalizes album/artist groups in SQLite. Prefer `useLibraryScan` from the
+ * app-level provider so Settings rescan + MediaStore listeners share one walk.
  *
- * Auto-scan runs only when the SQLite library is empty. Once tracks exist, the
- * Songs list is served from cache; pull-to-refresh / `rescan` walks MediaStore again.
+ * Auto-scan runs only when the SQLite library is empty (or artwork backfill is
+ * needed). Once tracks exist, lists are served from cache; `rescan` walks
+ * MediaStore again.
  */
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';

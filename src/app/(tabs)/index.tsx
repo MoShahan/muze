@@ -11,11 +11,11 @@ import { NeoCard } from '@/components/ui/neo-card';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
-import { useAudioLibraryScan } from '@/hooks/use-audio-library-scan';
 import { useDisplayName } from '@/hooks/use-display-name';
 import { useLibraryTracks } from '@/hooks/use-library-tracks';
 import { formatHomeGreeting } from '@/lib/greeting';
 import { formatDurationMs } from '@/lib/library/filter';
+import { useLibraryScan } from '@/store/library-scan-provider';
 import { usePlayback } from '@/store/playback-provider';
 
 /** Default tab (Expo `index` route). Product name: Songs. */
@@ -31,9 +31,7 @@ export default function SongsScreen() {
     errorMessage,
     isScanning,
     rescan,
-  } = useAudioLibraryScan({
-    enabled: isGranted,
-  });
+  } = useLibraryScan();
   const { displayName } = useDisplayName();
   const [query, setQuery] = useState('');
   const {
@@ -203,7 +201,7 @@ export default function SongsScreen() {
             }
           : undefined
       }
-      refreshing={isScanning && filteredTracks.length === 0}
+      refreshing={isScanning}
       onRefresh={() => {
         void (async () => {
           await rescan();

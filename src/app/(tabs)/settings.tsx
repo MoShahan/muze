@@ -10,8 +10,21 @@ import { ThemePreferenceControl } from '@/components/settings/theme-preference-c
 import { AppText } from '@/components/ui/app-text';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
+import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
+import { useLibraryScan } from '@/store/library-scan-provider';
 
 export default function SettingsScreen() {
+  const { isGranted } = useAudioLibraryPermission();
+  const { isScanning, libraryCounts, rescan } = useLibraryScan();
+
+  const rescanDetail = !isGranted
+    ? 'Needs permission'
+    : isScanning
+      ? 'Scanning…'
+      : libraryCounts.tracks > 0
+        ? `${libraryCounts.tracks} songs`
+        : 'Tap to scan';
+
   return (
     <Screen scroll contentStyle={styles.content}>
       <AppText variant="display">Settings</AppText>
@@ -27,7 +40,19 @@ export default function SettingsScreen() {
       </SettingsSection>
 
       <SettingsSection title="Library">
-        <SettingsRow title="Rescan library" detail="Coming soon" />
+        <SettingsRow
+          title="Rescan library"
+          detail={rescanDetail}
+          hint="Walk device audio again and update Songs, Albums, and Artists"
+          accessibilityLabel={`Rescan library. ${rescanDetail}`}
+          onPress={
+            isGranted && !isScanning
+              ? () => {
+                  void rescan();
+                }
+              : undefined
+          }
+        />
         <SettingsRow
           title="Folder visibility"
           detail="Choose"
