@@ -3,9 +3,11 @@
  *
  * Owns one AudioPlayer, the current track, and an in-memory queue of full
  * PlaybackTrack rows (uri included) so next / previous / shuffle / repeat can
- * advance without SQLite lookups.
+ * advance without SQLite lookups. Also persists last track + position for
+ * cold-start resume into the mini-player (paused at the saved timestamp).
  */
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useSQLiteContext } from 'expo-sqlite';
 import {
   createContext,
   use,
@@ -15,7 +17,14 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
+import {
+  clearPlaybackResumeState,
+  getPlaybackResumeState,
+  setPlaybackResumeState,
+} from '@/lib/db/settings';
+import { getTrackById, type CachedTrackRow } from '@/lib/db/tracks';
 import {
   nextQueueIndex,
   previousQueueIndex,
@@ -67,6 +76,8 @@ const PlaybackContext = createContext<PlaybackContextValue | null>(null);
 
 const PLAY_MODE_ORDER: PlayMode[] = ['shuffle', 'all', 'one'];
 const PREVIOUS_RESTART_THRESHOLD_MS = 3000;
+/** How often to flush position while playing (ms). */
+const RESUME_PERSIST_INTERVAL_MS = 2000;
 
 function toArtworkUrl(uri: string | null | undefined): string | undefined {
   if (!uri) {
@@ -88,7 +99,20 @@ function playModeFromFlags(shuffle: boolean, repeat: RepeatMode): PlayMode {
   return 'all';
 }
 
+function trackRowToPlayback(row: CachedTrackRow): PlaybackTrack {
+  return {
+    id: row.id,
+    title: row.title,
+    artist: row.artist,
+    album: row.album,
+    artworkUri: row.artworkPath,
+    durationMs: row.durationMs,
+    uri: row.uri,
+  };
+}
+
 export function PlaybackProvider({ children }: PropsWithChildren) {
+  const db = useSQLiteContext();
   const player = useAudioPlayer(null, {
     updateInterval: 250,
     keepAudioSessionActive: true,
@@ -108,6 +132,10 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   const shuffleRef = useRef(shuffle);
   const positionMsRef = useRef(0);
   const handlingFinishRef = useRef(false);
+  const resumeReadyRef = useRef(false);
+  const pendingResumeSeekMsRef = useRef<number | null>(null);
+  const lastPersistedAtRef = useRef(0);
+  const currentTrackIdRef = useRef<string | null>(null);
 
   const playMode = playModeFromFlags(shuffle, repeat);
 
@@ -128,12 +156,39 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   }, [shuffle]);
 
   useEffect(() => {
+    currentTrackIdRef.current = currentTrack?.id ?? null;
+  }, [currentTrack?.id]);
+
+  useEffect(() => {
     void setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
       interruptionMode: 'doNotMix',
     });
   }, []);
+
+  const persistResumeState = useCallback(
+    async (trackId: string | null, positionMs: number, force = false) => {
+      if (!resumeReadyRef.current || pendingResumeSeekMsRef.current != null) {
+        return;
+      }
+      if (!trackId) {
+        await clearPlaybackResumeState(db);
+        lastPersistedAtRef.current = Date.now();
+        return;
+      }
+      const now = Date.now();
+      if (!force && now - lastPersistedAtRef.current < RESUME_PERSIST_INTERVAL_MS) {
+        return;
+      }
+      lastPersistedAtRef.current = now;
+      await setPlaybackResumeState(db, {
+        trackId,
+        positionMs: Math.max(0, Math.round(positionMs)),
+      });
+    },
+    [db],
+  );
 
   const applyLockScreen = useCallback(
     (track: PlaybackTrack) => {
@@ -153,6 +208,7 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
 
   const loadAndPlay = useCallback(
     (track: PlaybackTrack, index: number) => {
+      pendingResumeSeekMsRef.current = null;
       setCurrentTrackState(track);
       setQueueIndex(index);
       queueIndexRef.current = index;
@@ -162,8 +218,9 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
       player.replace({ uri: track.uri });
       player.play();
       applyLockScreen(track);
+      void persistResumeState(track.id, 0, true);
     },
-    [applyLockScreen, player],
+    [applyLockScreen, persistResumeState, player],
   );
 
   const playTrack = useCallback(
@@ -182,9 +239,16 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     [loadAndPlay],
   );
 
-  const setCurrentTrack = useCallback((track: PlaybackTrack | null) => {
-    setCurrentTrackState(track);
-  }, []);
+  const setCurrentTrack = useCallback(
+    (track: PlaybackTrack | null) => {
+      setCurrentTrackState(track);
+      if (!track) {
+        pendingResumeSeekMsRef.current = null;
+        void persistResumeState(null, 0, true);
+      }
+    },
+    [persistResumeState],
+  );
 
   const setQueue = useCallback((tracks: PlaybackTrack[], startIndex = 0) => {
     const safeIndex = Math.min(Math.max(0, startIndex), Math.max(0, tracks.length - 1));
@@ -201,18 +265,20 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
         player.play();
       } else {
         player.pause();
+        void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
       }
     },
-    [player],
+    [persistResumeState, player],
   );
 
   const togglePlayPause = useCallback(() => {
     if (status.playing) {
       player.pause();
+      void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
     } else {
       player.play();
     }
-  }, [player, status.playing]);
+  }, [persistResumeState, player, status.playing]);
 
   const playNext = useCallback(() => {
     const tracks = queueRef.current;
@@ -335,11 +401,98 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     playNext();
   }, [status.didJustFinish, playNext, player]);
 
+  // Cold start: restore last track into mini-player, paused at saved position.
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) {
+        return;
+      }
+
+      const saved = await getPlaybackResumeState(db);
+      if (cancelled) {
+        return;
+      }
+
+      if (!saved) {
+        resumeReadyRef.current = true;
+        return;
+      }
+
+      const row = await getTrackById(db, saved.trackId);
+      if (cancelled) {
+        return;
+      }
+
+      if (!row?.uri) {
+        await clearPlaybackResumeState(db);
+        resumeReadyRef.current = true;
+        return;
+      }
+
+      const track = trackRowToPlayback(row);
+      const maxPosition = Math.max(0, row.durationMs > 0 ? row.durationMs - 250 : saved.positionMs);
+      const seekMs = Math.min(Math.max(0, saved.positionMs), maxPosition);
+
+      setCurrentTrackState(track);
+      setQueueState([track]);
+      setOriginalQueue([track]);
+      queueRef.current = [track];
+      setQueueIndex(0);
+      queueIndexRef.current = 0;
+      pendingResumeSeekMsRef.current = seekMs;
+      positionMsRef.current = seekMs;
+
+      player.replace({ uri: track.uri });
+      player.pause();
+      applyLockScreen(track);
+      resumeReadyRef.current = true;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyLockScreen, db, player]);
+
+  // Apply deferred seek once the restored source is loaded; stay paused.
+  useEffect(() => {
+    const seekMs = pendingResumeSeekMsRef.current;
+    if (seekMs == null || !status.isLoaded) {
+      return;
+    }
+    pendingResumeSeekMsRef.current = null;
+    void player.seekTo(seekMs / 1000);
+    player.pause();
+  }, [player, status.isLoaded]);
+
   const isPlaying = status.playing;
   const positionMs = Math.round((status.currentTime ?? 0) * 1000);
   useEffect(() => {
     positionMsRef.current = positionMs;
   }, [positionMs]);
+
+  // Throttled position flush while playing; always flush when paused with a track.
+  useEffect(() => {
+    if (!resumeReadyRef.current || !currentTrack) {
+      return;
+    }
+    void persistResumeState(currentTrack.id, positionMs, !isPlaying);
+  }, [currentTrack, isPlaying, persistResumeState, positionMs]);
+
+  // Flush on background / inactive so a kill still restores the right spot.
+  useEffect(() => {
+    const onChange = (next: AppStateStatus) => {
+      if (next === 'active') {
+        return;
+      }
+      void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
+  }, [persistResumeState]);
+
   const durationMs = Math.round(
     status.duration && status.duration > 0
       ? status.duration * 1000

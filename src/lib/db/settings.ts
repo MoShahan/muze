@@ -11,7 +11,16 @@ export const SETTINGS_KEYS = {
   trackSort: 'track_sort',
   /** JSON string array of folder_path values excluded from Songs / library lists. */
   hiddenFolderPaths: 'hidden_folder_paths',
+  /** Last played MediaStore / track id for cold-start resume. */
+  lastTrackId: 'last_track_id',
+  /** Exact playback position in milliseconds for cold-start resume. */
+  lastPositionMs: 'last_position_ms',
 } as const;
+
+export type PlaybackResumeState = {
+  trackId: string;
+  positionMs: number;
+};
 
 const THEME_PREFERENCES = new Set<ThemePreference>(['system', 'light', 'dark']);
 
@@ -96,4 +105,36 @@ export async function setHiddenFolderPaths(
     ...new Set(folderPaths.map((item) => item.trim()).filter((item) => item.length > 0)),
   ].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   await setSetting(db, SETTINGS_KEYS.hiddenFolderPaths, JSON.stringify(normalized));
+}
+
+export async function getPlaybackResumeState(
+  db: SQLiteDatabase,
+): Promise<PlaybackResumeState | null> {
+  const trackId = (await getSetting(db, SETTINGS_KEYS.lastTrackId))?.trim() ?? '';
+  if (!trackId) {
+    return null;
+  }
+  const rawPosition = await getSetting(db, SETTINGS_KEYS.lastPositionMs);
+  const parsed = rawPosition != null ? Number.parseInt(rawPosition, 10) : 0;
+  const positionMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  return { trackId, positionMs };
+}
+
+export async function setPlaybackResumeState(
+  db: SQLiteDatabase,
+  state: PlaybackResumeState,
+): Promise<void> {
+  const trackId = state.trackId.trim();
+  if (!trackId) {
+    await clearPlaybackResumeState(db);
+    return;
+  }
+  const positionMs = Math.max(0, Math.round(state.positionMs));
+  await setSetting(db, SETTINGS_KEYS.lastTrackId, trackId);
+  await setSetting(db, SETTINGS_KEYS.lastPositionMs, String(positionMs));
+}
+
+export async function clearPlaybackResumeState(db: SQLiteDatabase): Promise<void> {
+  await setSetting(db, SETTINGS_KEYS.lastTrackId, '');
+  await setSetting(db, SETTINGS_KEYS.lastPositionMs, '0');
 }
