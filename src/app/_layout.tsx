@@ -37,7 +37,6 @@ function RootNavigator() {
           gestureEnabled: true,
         }}
       />
-      <Stack.Screen name="search" />
       <Stack.Screen name="folders" />
       <Stack.Screen name="library-folders" />
       <Stack.Screen name="favorites" />
