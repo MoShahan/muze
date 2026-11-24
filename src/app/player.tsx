@@ -106,8 +106,8 @@ export default function PlayerScreen() {
             pointerEvents="none"
           />
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.55)']}
-            locations={[0, 0.45, 1]}
+            colors={['transparent', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.72)']}
+            locations={[0, 0.4, 1]}
             style={styles.bottomScrim}
             pointerEvents="none"
           />
@@ -119,7 +119,7 @@ export default function PlayerScreen() {
           styles.foreground,
           {
             paddingTop: insets.top,
-            paddingBottom: Math.max(insets.bottom, Spacing.two),
+            paddingBottom: Math.max(insets.bottom, Spacing.two) + Spacing.five * 3,
           },
         ]}
       >
@@ -135,6 +135,7 @@ export default function PlayerScreen() {
             artist={artist}
             favorited={favorited}
             onToggleFavorite={onToggleFavorite}
+            onGlass={Boolean(artUri)}
           />
 
           <WaveformSeekbar
@@ -155,6 +156,7 @@ export default function PlayerScreen() {
             onNext={playNext}
             onCyclePlayMode={cyclePlayMode}
             onOpenQueue={() => router.push('/queue' as Href)}
+            onGlass={Boolean(artUri)}
           />
         </View>
       </View>
@@ -198,6 +200,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   lower: {
-    gap: Spacing.three,
+    gap: Spacing.five,
   },
 });
