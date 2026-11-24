@@ -3,7 +3,7 @@
  *
  * Keeps scan progress / revision shared so Songs pull-to-refresh, Settings
  * “Rescan library”, and Albums/Artists can all drive one MediaStore walk.
- * Android change events have no incremental payload — debounce then full rescan.
+ * Android change events have no incremental payload - debounce then full rescan.
  */
 import { addListener } from 'expo-media-library';
 import { createContext, use, useEffect, useRef, type PropsWithChildren } from 'react';

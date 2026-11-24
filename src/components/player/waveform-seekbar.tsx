@@ -39,7 +39,7 @@ export function WaveformSeekbar({
     onSeek(clampProgress(x / width));
   };
 
-  // Gesture callbacks run on the UI thread — hop to JS before calling React state setters.
+  // Gesture callbacks run on the UI thread - hop to JS before calling React state setters.
   const pan = usePanGesture({
     onBegin: (event) => {
       scheduleOnRN(seekFromX, event.x);

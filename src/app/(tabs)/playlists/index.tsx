@@ -29,10 +29,10 @@ type LibraryShortcut = {
 
 /**
  * Playlists tab order (product):
- * 1. Folders — device folder browse
- * 2. Favorites — pinned system list
+ * 1. Folders - device folder browse
+ * 2. Favorites - pinned system list
  * 3. Recently played
- * 4. Custom playlists — user-created lists
+ * 4. Custom playlists - user-created lists
  */
 export default function PlaylistsScreen() {
   const db = useSQLiteContext();

@@ -11,7 +11,7 @@ type ArtistListItemProps = {
   onPressId: (id: string) => void;
 };
 
-/** Artists have no portrait in tags — name + counts only (no art placeholder). */
+/** Artists have no portrait in tags - name + counts only (no art placeholder). */
 export const ArtistListItem = memo(function ArtistListItem({
   id,
   name,

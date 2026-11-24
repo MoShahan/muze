@@ -12,7 +12,7 @@ type FolderListItemProps = {
   onPressId: (id: string) => void;
 };
 
-/** Folders have no cover art — name, path, and count only. */
+/** Folders have no cover art - name, path, and count only. */
 export const FolderListItem = memo(function FolderListItem({
   id,
   name,

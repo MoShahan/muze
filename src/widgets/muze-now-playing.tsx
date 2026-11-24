@@ -6,7 +6,7 @@
  * `updateSnapshot`; button taps use `target` + `onPress` (optimistic UI) and
  * `addUserInteractionListener` in the app process to drive real transport.
  *
- * Keep render-time values inside the `'widget'` function — outer module
+ * Keep render-time values inside the `'widget'` function - outer module
  * bindings are not available in the isolated widget bundle.
  */
 import { Box, Column, Image, Row, Text, TextButton } from '@expo/ui/jetpack-compose';

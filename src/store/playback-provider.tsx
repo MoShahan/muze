@@ -148,7 +148,7 @@ function queueSignature(tracks: readonly PlaybackTrack[]): string {
 
 export function PlaybackProvider({ children }: PropsWithChildren) {
   const db = useSQLiteContext();
-  // Empty initial sources — queue is pushed via clear/add so loop changes do not recreate the playlist.
+  // Empty initial sources - queue is pushed via clear/add so loop changes do not recreate the playlist.
   const playlist = useAudioPlaylist({
     sources: [],
     updateInterval: 250,
