@@ -17,7 +17,7 @@ import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission'
 import { countFavorites } from '@/lib/db/favorites';
 import { createPlaylist, listPlaylists, type PlaylistRow } from '@/lib/db/playlists';
 import { countRecents } from '@/lib/db/recents';
-import { matchesLibraryQuery } from '@/lib/library/filter';
+import { formatCountLabel, matchesLibraryQuery } from '@/lib/library/filter';
 
 type LibraryShortcut = {
   id: string;
@@ -175,7 +175,7 @@ export default function PlaylistsScreen() {
                 detail={
                   playlist.trackCount === 0
                     ? 'Empty'
-                    : `${playlist.trackCount} track${playlist.trackCount === 1 ? '' : 's'}`
+                    : formatCountLabel(playlist.trackCount, 'track')
                 }
                 onPress={() => router.push(`/playlist/${encodeURIComponent(playlist.id)}` as Href)}
               />

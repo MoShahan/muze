@@ -8,7 +8,7 @@ import { TrackListItem } from '@/components/library/track-list-item';
 import { TrackSortMenu } from '@/components/library/track-sort-menu';
 import { getAlbumById, type AlbumRow } from '@/lib/db/albums';
 import { listTracksForAlbum, type CachedTrackRow } from '@/lib/db/tracks';
-import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 import { filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
 import { playTrackList } from '@/lib/library/play-tracks';
 import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
@@ -117,9 +117,7 @@ export default function AlbumDetailScreen() {
         title={album?.title ?? (isLoading ? 'Album' : 'Album not found')}
         hideTitle={Boolean(album)}
         headerExtraBleed={Boolean(album)}
-        statusMessage={
-          album ? `${filteredTracks.length} track${filteredTracks.length === 1 ? '' : 's'}` : null
-        }
+        statusMessage={album ? formatCountLabel(filteredTracks.length, 'track') : null}
         searchValue={query}
         onSearchChange={setQuery}
         searchPlaceholder="Search album tracks"

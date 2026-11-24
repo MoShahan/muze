@@ -93,7 +93,7 @@ export type ScanAudioLibraryOptions = {
 /** Default bounded page size for MediaLibrary queries. */
 export const SCAN_BATCH_SIZE = 50;
 /** Cap parallel `getInfo()` calls per page (unbounded Promise.all spikes on FLAC). */
-export const SCAN_GET_INFO_CONCURRENCY = 6;
+const SCAN_GET_INFO_CONCURRENCY = 6;
 
 /**
  * Skip very short clips (notifications, UI sounds, many ringtones).
@@ -181,7 +181,7 @@ function sourceModifiedMatches(cached: number | null, asset: number | null): boo
 /**
  * Re-parse when missing, uri changed, mtime changed, or cached artwork file was evicted.
  */
-export function shouldReparseTrack(
+function shouldReparseTrack(
   asset: RawScannedAudioAsset,
   cached: CachedTrackRow | undefined,
 ): boolean {
@@ -229,7 +229,7 @@ function toUpsertInput(asset: ScannedAudioAsset): UpsertTrackInput {
  * Reuses SQLite-cached tags/art when the file is unchanged; otherwise re-parses
  * (including embedded art) and writes a ~400px JPEG into app cache.
  */
-export async function queryAudioAssetPage(
+async function queryAudioAssetPage(
   offset: number,
   limit: number = SCAN_BATCH_SIZE,
   signal?: AbortSignal,

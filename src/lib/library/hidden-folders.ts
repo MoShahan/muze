@@ -26,17 +26,6 @@ export function filterTracksExcludingFolders(
   });
 }
 
-export function isFolderPathHidden(
-  folderPath: string | null | undefined,
-  hiddenFolderPaths: ReadonlySet<string>,
-): boolean {
-  const path = folderPath?.trim();
-  if (!path) {
-    return false;
-  }
-  return hiddenFolderPaths.has(path);
-}
-
 /** Build album rows from a visible track subset (counts match what Songs shows). */
 export function albumsFromTracks(tracks: CachedTrackRow[]): AlbumRow[] {
   type Agg = {

@@ -1,5 +1,5 @@
 /**
- * Pure queue helpers for shuffle / next-prev index math / reorder.
+ * Pure queue helpers for shuffle / reorder.
  * PlaybackProvider owns side effects (native playlist sync, resume, UI).
  */
 import type { PlaybackTrack } from '@/store/playback-provider';
@@ -29,34 +29,6 @@ export function shuffleTracksKeepingCurrent(
   }
 
   return current ? [current, ...rest] : rest;
-}
-
-export function nextQueueIndex(
-  queueLength: number,
-  currentIndex: number,
-  options: { wrap: boolean },
-): number | null {
-  if (queueLength <= 0) {
-    return null;
-  }
-  if (currentIndex < queueLength - 1) {
-    return currentIndex + 1;
-  }
-  return options.wrap ? 0 : null;
-}
-
-export function previousQueueIndex(
-  queueLength: number,
-  currentIndex: number,
-  options: { wrap: boolean },
-): number | null {
-  if (queueLength <= 0) {
-    return null;
-  }
-  if (currentIndex > 0) {
-    return currentIndex - 1;
-  }
-  return options.wrap ? queueLength - 1 : null;
 }
 
 /** Move one queue item to a new index; returns a new array. */

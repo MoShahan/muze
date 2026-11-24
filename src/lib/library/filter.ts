@@ -13,3 +13,8 @@ export function formatDurationMs(durationMs: number): string {
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
+
+/** Plural-aware count label, e.g. `1 track` / `12 albums`. */
+export function formatCountLabel(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}

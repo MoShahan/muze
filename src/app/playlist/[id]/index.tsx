@@ -20,7 +20,7 @@ import {
   type PlaylistRow,
 } from '@/lib/db/playlists';
 import { type CachedTrackRow } from '@/lib/db/tracks';
-import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 import { playTrackList } from '@/lib/library/play-tracks';
 import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
 import { usePlayback } from '@/store/playback-provider';
@@ -171,11 +171,7 @@ export default function PlaylistDetailScreen() {
     <>
       <LibraryBrowser
         title={playlist?.name ?? (isLoading ? 'Playlist' : 'Playlist not found')}
-        statusMessage={
-          playlist
-            ? `${filteredTracks.length} track${filteredTracks.length === 1 ? '' : 's'}`
-            : null
-        }
+        statusMessage={playlist ? formatCountLabel(filteredTracks.length, 'track') : null}
         searchValue={query}
         onSearchChange={setQuery}
         searchPlaceholder="Search playlist tracks"

@@ -1,53 +1,18 @@
 import { router } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { FolderListItem } from '@/components/library/folder-list-item';
 import { LibraryBrowser } from '@/components/library/library-browser';
-import { listFolders, type FolderRow } from '@/lib/db/folders';
-import { matchesLibraryQuery } from '@/lib/library/filter';
+import { useFolderRows } from '@/hooks/use-folder-rows';
+import { formatCountLabel, matchesLibraryQuery } from '@/lib/library/filter';
 import { useLibraryVisibility } from '@/store/library-visibility-provider';
 
+import type { FolderRow } from '@/lib/db/folders';
+
 export default function FoldersScreen() {
-  const db = useSQLiteContext();
-  const { isFolderIncluded, revision: visibilityRevision } = useLibraryVisibility();
-  const [folders, setFolders] = useState<FolderRow[]>([]);
+  const { isFolderIncluded } = useLibraryVisibility();
+  const { folders, isLoading, refresh } = useFolderRows();
   const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const next = await listFolders(db);
-      setFolders(next);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [db]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      await Promise.resolve();
-      if (cancelled) {
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const next = await listFolders(db);
-        if (!cancelled) {
-          setFolders(next);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [db, visibilityRevision]);
 
   const filtered = useMemo(
     () =>
@@ -69,7 +34,7 @@ export default function FoldersScreen() {
         id={item.id}
         name={item.name}
         path={item.path}
-        trackCountLabel={`${item.trackCount} track${item.trackCount === 1 ? '' : 's'}`}
+        trackCountLabel={formatCountLabel(item.trackCount, 'track')}
         onPressId={onPressFolder}
       />
     ),
@@ -79,7 +44,7 @@ export default function FoldersScreen() {
   return (
     <LibraryBrowser
       title="Folders"
-      statusMessage={`${filtered.length} folder${filtered.length === 1 ? '' : 's'}`}
+      statusMessage={formatCountLabel(filtered.length, 'folder')}
       searchValue={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search folders"

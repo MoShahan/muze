@@ -11,7 +11,7 @@ import { AppText } from '@/components/ui/app-text';
 import { listAlbumsForArtist, type AlbumRow } from '@/lib/db/albums';
 import { getArtistById, type ArtistRow } from '@/lib/db/artists';
 import { listTracksForArtist, type CachedTrackRow } from '@/lib/db/tracks';
-import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 import { albumsFromTracks, filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
 import { playTrackList } from '@/lib/library/play-tracks';
 import { useLibraryVisibility } from '@/store/library-visibility-provider';
@@ -149,7 +149,7 @@ export default function ArtistDetailScreen() {
             id={item.album.id}
             title={item.album.title}
             artist={item.album.artist}
-            trackCountLabel={`${item.album.trackCount} track${item.album.trackCount === 1 ? '' : 's'}`}
+            trackCountLabel={formatCountLabel(item.album.trackCount, 'track')}
             artworkUri={item.album.artworkPath}
             onPressId={onPressAlbum}
           />

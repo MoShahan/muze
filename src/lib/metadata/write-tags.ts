@@ -10,7 +10,7 @@ import type { TrackMetadataUpdate } from '@/lib/db/tracks';
 export type WriteTagsResult = { ok: true; bytes: Uint8Array } | { ok: false; message: string };
 
 /** Build a music-metadata patch from editor fields (does not touch filename). */
-export function metadataToTagPatch(metadata: TrackMetadataUpdate): TagPatch {
+function metadataToTagPatch(metadata: TrackMetadataUpdate): TagPatch {
   const patch: TagPatch = {
     title: metadata.title,
     artist: metadata.artist,

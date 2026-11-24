@@ -1,7 +1,5 @@
 import * as Linking from 'expo-linking';
 import {
-  getPermissionsAsync,
-  requestPermissionsAsync,
   PermissionStatus,
   type GranularPermission,
   type PermissionResponse,
@@ -9,14 +7,6 @@ import {
 
 /** Android 13+ granular access: audio only - never photo/video. */
 export const AUDIO_GRANULAR_PERMISSIONS: GranularPermission[] = ['audio'];
-
-export async function getAudioLibraryPermission(): Promise<PermissionResponse> {
-  return getPermissionsAsync(false, AUDIO_GRANULAR_PERMISSIONS);
-}
-
-export async function requestAudioLibraryPermission(): Promise<PermissionResponse> {
-  return requestPermissionsAsync(false, AUDIO_GRANULAR_PERMISSIONS);
-}
 
 export async function openAppSettings(): Promise<void> {
   await Linking.openSettings();

@@ -7,7 +7,7 @@ import { DEFAULT_TRACK_SORT, isTrackSortKey, type TrackSortKey } from '@/lib/lib
 import type { ThemePreference } from '@/constants/theme';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export const SETTINGS_KEYS = {
+const SETTINGS_KEYS = {
   themePreference: 'theme_preference',
   trackSort: 'track_sort',
   /** JSON string array of folder_path values excluded from Songs / library lists. */
@@ -25,7 +25,7 @@ export type PlaybackResumeState = {
 
 const THEME_PREFERENCES = new Set<ThemePreference>(['system', 'light', 'dark']);
 
-export async function getSetting(db: SQLiteDatabase, key: string): Promise<string | null> {
+async function getSetting(db: SQLiteDatabase, key: string): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>(
     'SELECT value FROM settings WHERE key = ?',
     [key],
@@ -33,7 +33,7 @@ export async function getSetting(db: SQLiteDatabase, key: string): Promise<strin
   return row?.value ?? null;
 }
 
-export async function setSetting(db: SQLiteDatabase, key: string, value: string): Promise<void> {
+async function setSetting(db: SQLiteDatabase, key: string, value: string): Promise<void> {
   await db.runAsync(
     `INSERT INTO settings (key, value) VALUES (?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,

@@ -9,7 +9,7 @@ import { TrackListItem } from '@/components/library/track-list-item';
 import { TrackSortControl } from '@/components/library/track-sort-control';
 import { listFavoriteTracks } from '@/lib/db/favorites';
 import { type CachedTrackRow } from '@/lib/db/tracks';
-import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 import { playTrackList } from '@/lib/library/play-tracks';
 import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
 import { usePlayback } from '@/store/playback-provider';
@@ -83,7 +83,7 @@ export default function FavoritesScreen() {
     <LibraryBrowser
       title="Favorites"
       subtitle="Liked from now-playing"
-      statusMessage={`${filteredTracks.length} track${filteredTracks.length === 1 ? '' : 's'}`}
+      statusMessage={formatCountLabel(filteredTracks.length, 'track')}
       searchValue={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search favorites"

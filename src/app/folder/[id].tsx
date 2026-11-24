@@ -9,7 +9,7 @@ import { TrackListItem } from '@/components/library/track-list-item';
 import { TrackSortControl } from '@/components/library/track-sort-control';
 import { getFolderById, type FolderRow } from '@/lib/db/folders';
 import { listTracksForFolder, type CachedTrackRow } from '@/lib/db/tracks';
-import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 import { playTrackList } from '@/lib/library/play-tracks';
 import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
 import { usePlayback } from '@/store/playback-provider';
@@ -104,9 +104,7 @@ export default function FolderDetailScreen() {
     <LibraryBrowser
       title={folder?.name ?? (isLoading ? 'Folder' : 'Folder not found')}
       subtitle={folder?.path ?? null}
-      statusMessage={
-        folder ? `${filteredTracks.length} track${filteredTracks.length === 1 ? '' : 's'}` : null
-      }
+      statusMessage={folder ? formatCountLabel(filteredTracks.length, 'track') : null}
       searchValue={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search folder tracks"

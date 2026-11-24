@@ -210,19 +210,6 @@ export async function parseTrackTagsDetailed(
   }
 }
 
-export async function parseTrackTags(uri: string, filename: string): Promise<ParsedTrackTags> {
-  const detailed = await parseTrackTagsDetailed(uri, filename, { includeArt: false });
-  return {
-    title: detailed.title,
-    artist: detailed.artist,
-    album: detailed.album,
-    albumArtist: detailed.albumArtist,
-    trackNumber: detailed.trackNumber,
-    year: detailed.year,
-    genre: detailed.genre,
-  };
-}
-
 /** True when music-metadata reported Vorbis comments (typical for FLAC). */
 export function hasVorbisTags(tagTypes: string[]): boolean {
   return tagTypes.some((type) => type.toLowerCase().includes('vorbis'));

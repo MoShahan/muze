@@ -10,7 +10,7 @@ import { NeoSurface } from '@/components/ui/neo-surface';
 import { Radius, Spacing } from '@/constants/theme';
 import { addTracksToPlaylist, getPlaylistById, listPlaylistTrackIds } from '@/lib/db/playlists';
 import { listTracks, type CachedTrackRow } from '@/lib/db/tracks';
-import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 
 export default function PlaylistAddTracksScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
@@ -127,7 +127,7 @@ export default function PlaylistAddTracksScreen() {
       statusMessage={
         selected.size > 0
           ? `${selected.size} selected`
-          : `${filteredTracks.length} track${filteredTracks.length === 1 ? '' : 's'}`
+          : formatCountLabel(filteredTracks.length, 'track')
       }
       searchValue={query}
       onSearchChange={setQuery}

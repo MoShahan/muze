@@ -1,49 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LibraryFolderVisibilityRow } from '@/components/settings/library-folder-visibility-row';
 import { AppText } from '@/components/ui/app-text';
 import { Spacing } from '@/constants/theme';
-import { listFolders, type FolderRow } from '@/lib/db/folders';
+import { useFolderRows } from '@/hooks/use-folder-rows';
+import { formatCountLabel } from '@/lib/library/filter';
 import { useLibraryVisibility } from '@/store/library-visibility-provider';
 import { useTheme } from '@/store/theme-provider';
 
+import type { FolderRow } from '@/lib/db/folders';
+
 export default function LibraryFoldersScreen() {
-  const db = useSQLiteContext();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { isFolderIncluded, setFolderIncluded, revision } = useLibraryVisibility();
-  const [folders, setFolders] = useState<FolderRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      await Promise.resolve();
-      if (cancelled) {
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const next = await listFolders(db);
-        if (!cancelled) {
-          setFolders(next);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [db, revision]);
+  const { isFolderIncluded, setFolderIncluded } = useLibraryVisibility();
+  const { folders, isLoading } = useFolderRows();
 
   const hiddenCount = useMemo(
     () => folders.filter((folder) => !isFolderIncluded(folder.path)).length,
@@ -62,7 +38,7 @@ export default function LibraryFoldersScreen() {
       <LibraryFolderVisibilityRow
         path={item.path}
         name={item.name}
-        trackCountLabel={`${item.trackCount} track${item.trackCount === 1 ? '' : 's'}`}
+        trackCountLabel={formatCountLabel(item.trackCount, 'track')}
         included={isFolderIncluded(item.path)}
         onIncludedChange={onIncludedChange}
       />
@@ -101,7 +77,7 @@ export default function LibraryFoldersScreen() {
             ? 'Loading folders with audio…'
             : folders.length === 0
               ? 'No audio folders yet. Scan from Songs first.'
-              : `${folders.length} folder${folders.length === 1 ? '' : 's'} with audio${
+              : `${formatCountLabel(folders.length, 'folder')} with audio${
                   hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ''
                 }`}
         </AppText>

@@ -6,6 +6,7 @@ import { LibraryBrowser } from '@/components/library/library-browser';
 import { LibraryPermissionScreen } from '@/components/library/library-permission-screen';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
 import { useLibraryAlbums } from '@/hooks/use-library-albums';
+import { formatCountLabel } from '@/lib/library/filter';
 import { useLibraryScan } from '@/store/library-scan-provider';
 
 export default function AlbumsScreen() {
@@ -36,7 +37,7 @@ export default function AlbumsScreen() {
         id={item.id}
         title={item.title}
         artist={item.artist}
-        trackCountLabel={`${item.trackCount} track${item.trackCount === 1 ? '' : 's'}`}
+        trackCountLabel={formatCountLabel(item.trackCount, 'track')}
         artworkUri={item.artworkPath}
         onPressId={onPressAlbum}
       />
@@ -53,7 +54,7 @@ export default function AlbumsScreen() {
   return (
     <LibraryBrowser
       title="Albums"
-      statusMessage={`${filteredAlbums.length} album${filteredAlbums.length === 1 ? '' : 's'}`}
+      statusMessage={formatCountLabel(filteredAlbums.length, 'album')}
       searchValue={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search albums"

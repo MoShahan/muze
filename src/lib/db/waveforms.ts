@@ -6,12 +6,6 @@ import { sanitizePeaks, WAVEFORM_BAR_COUNT } from '@/lib/waveform/peaks';
 
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export type WaveformRow = {
-  trackId: string;
-  peaks: number[];
-  updatedAt: number;
-};
-
 export async function getWaveformPeaks(
   db: SQLiteDatabase,
   trackId: string,

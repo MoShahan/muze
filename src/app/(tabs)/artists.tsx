@@ -6,6 +6,7 @@ import { LibraryBrowser } from '@/components/library/library-browser';
 import { LibraryPermissionScreen } from '@/components/library/library-permission-screen';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
 import { useLibraryArtists } from '@/hooks/use-library-artists';
+import { formatCountLabel } from '@/lib/library/filter';
 import { useLibraryScan } from '@/store/library-scan-provider';
 
 export default function ArtistsScreen() {
@@ -35,7 +36,7 @@ export default function ArtistsScreen() {
       <ArtistListItem
         id={item.id}
         name={item.name}
-        detailLabel={`${item.albumCount} album${item.albumCount === 1 ? '' : 's'} · ${item.trackCount} track${item.trackCount === 1 ? '' : 's'}`}
+        detailLabel={`${formatCountLabel(item.albumCount, 'album')} · ${formatCountLabel(item.trackCount, 'track')}`}
         onPressId={onPressArtist}
       />
     ),
@@ -51,7 +52,7 @@ export default function ArtistsScreen() {
   return (
     <LibraryBrowser
       title="Artists"
-      statusMessage={`${filteredArtists.length} artist${filteredArtists.length === 1 ? '' : 's'}`}
+      statusMessage={formatCountLabel(filteredArtists.length, 'artist')}
       searchValue={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search artists"

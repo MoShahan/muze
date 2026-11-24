@@ -8,7 +8,7 @@ import { LibraryBrowser } from '@/components/library/library-browser';
 import { TrackListItem } from '@/components/library/track-list-item';
 import { listRecentTracks } from '@/lib/db/recents';
 import { type CachedTrackRow } from '@/lib/db/tracks';
-import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
+import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 import { playTrackList } from '@/lib/library/play-tracks';
 import { usePlayback } from '@/store/playback-provider';
 
@@ -81,7 +81,7 @@ export default function RecentScreen() {
     <LibraryBrowser
       title="Recently played"
       subtitle="Last 50 tracks you started"
-      statusMessage={`${filteredTracks.length} track${filteredTracks.length === 1 ? '' : 's'}`}
+      statusMessage={formatCountLabel(filteredTracks.length, 'track')}
       searchValue={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search recently played"
