@@ -513,43 +513,62 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     [applyPlaylistLoop],
   );
 
+  /** Bumps when shuffle toggles so a deferred rebuild can ignore stale work. */
+  const shuffleOpRef = useRef(0);
+
   const setShuffle = useCallback(
     (enabled: boolean) => {
+      // Already in this mode - skip native rebuild (was making all↔one feel laggy).
+      if (shuffleRef.current === enabled) {
+        return;
+      }
+
+      // Flip UI state immediately so the shuffle/repeat icon updates on this frame.
       setShuffleState(enabled);
       shuffleRef.current = enabled;
+      applyPlaylistLoop();
+
+      const op = ++shuffleOpRef.current;
       const currentId = queueRef.current[queueIndexRef.current]?.id ?? null;
-      const active = playlistRef.current;
-      const wasPlaying = active.playing;
-      if (enabled) {
-        const source = originalQueue.length > 0 ? originalQueue : queueRef.current;
-        const shuffled = shuffleTracksKeepingCurrent(source, currentId);
-        setQueueState(shuffled);
-        queueRef.current = shuffled;
-        setQueueIndex(0);
-        queueIndexRef.current = 0;
-        syncNativePlaylist(shuffled, 0);
+      const wasPlaying = playlistRef.current.playing;
+
+      // Defer queue rebuild + native playlist sync so the mode icon paints first.
+      setTimeout(() => {
+        if (op !== shuffleOpRef.current || shuffleRef.current !== enabled) {
+          return;
+        }
+        const active = playlistRef.current;
+        if (enabled) {
+          const source = originalQueue.length > 0 ? originalQueue : queueRef.current;
+          const shuffled = shuffleTracksKeepingCurrent(source, currentId);
+          setQueueState(shuffled);
+          queueRef.current = shuffled;
+          setQueueIndex(0);
+          queueIndexRef.current = 0;
+          syncNativePlaylist(shuffled, 0);
+          if (wasPlaying) {
+            active.play();
+          }
+          applyPlaylistLoop();
+          return;
+        }
+        const restored = originalQueue.length > 0 ? originalQueue : queueRef.current;
+        const restoredIndex = currentId
+          ? Math.max(
+              0,
+              restored.findIndex((track) => track.id === currentId),
+            )
+          : 0;
+        setQueueState(restored);
+        queueRef.current = restored;
+        setQueueIndex(restoredIndex);
+        queueIndexRef.current = restoredIndex;
+        syncNativePlaylist(restored, restoredIndex);
         if (wasPlaying) {
           active.play();
         }
         applyPlaylistLoop();
-        return;
-      }
-      const restored = originalQueue.length > 0 ? originalQueue : queueRef.current;
-      const restoredIndex = currentId
-        ? Math.max(
-            0,
-            restored.findIndex((track) => track.id === currentId),
-          )
-        : 0;
-      setQueueState(restored);
-      queueRef.current = restored;
-      setQueueIndex(restoredIndex);
-      queueIndexRef.current = restoredIndex;
-      syncNativePlaylist(restored, restoredIndex);
-      if (wasPlaying) {
-        active.play();
-      }
-      applyPlaylistLoop();
+      }, 0);
     },
     [applyPlaylistLoop, originalQueue, syncNativePlaylist],
   );
@@ -557,8 +576,10 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   const setPlayMode = useCallback(
     (mode: PlayMode) => {
       if (mode === 'one') {
-        setShuffle(false);
         setRepeat('one');
+        if (shuffleRef.current) {
+          setShuffle(false);
+        }
         return;
       }
       if (mode === 'shuffle') {
@@ -566,8 +587,10 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
         setShuffle(true);
         return;
       }
-      setShuffle(false);
       setRepeat('all');
+      if (shuffleRef.current) {
+        setShuffle(false);
+      }
     },
     [setRepeat, setShuffle],
   );
