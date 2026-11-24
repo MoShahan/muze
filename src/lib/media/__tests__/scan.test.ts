@@ -1,4 +1,9 @@
-import { MIN_MUSIC_DURATION_SECONDS, SCAN_BATCH_SIZE, shouldReparseTrack } from '@/lib/media/scan';
+import {
+  deviceAddedAtMs,
+  MIN_MUSIC_DURATION_SECONDS,
+  SCAN_BATCH_SIZE,
+  shouldReparseTrack,
+} from '@/lib/media/scan';
 import { makeTrack } from '@/test/fixtures';
 
 jest.mock('@/lib/metadata/artwork-cache', () => ({
@@ -21,6 +26,33 @@ describe('scan constants', () => {
   it('uses bounded batch size and 30s minimum duration', () => {
     expect(SCAN_BATCH_SIZE).toBe(50);
     expect(MIN_MUSIC_DURATION_SECONDS).toBe(30);
+  });
+});
+
+describe('deviceAddedAtMs', () => {
+  const creation = 1_700_000_000_000;
+  const modified = 1_700_000_100_000;
+
+  it('prefers modification time on Android (download/copy onto device)', () => {
+    const platform = require('react-native').Platform as { OS: string };
+    const previous = platform.OS;
+    platform.OS = 'android';
+    expect(deviceAddedAtMs({ creationTimeMs: creation, modificationTimeMs: modified })).toBe(
+      modified,
+    );
+    expect(deviceAddedAtMs({ creationTimeMs: creation, modificationTimeMs: null })).toBe(creation);
+    platform.OS = previous;
+  });
+
+  it('prefers creation time on iOS (library import date)', () => {
+    const platform = require('react-native').Platform as { OS: string };
+    const previous = platform.OS;
+    platform.OS = 'ios';
+    expect(deviceAddedAtMs({ creationTimeMs: creation, modificationTimeMs: modified })).toBe(
+      creation,
+    );
+    expect(deviceAddedAtMs({ creationTimeMs: null, modificationTimeMs: modified })).toBe(modified);
+    platform.OS = previous;
   });
 });
 

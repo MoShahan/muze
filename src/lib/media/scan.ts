@@ -134,6 +134,24 @@ function optionalEpochToMs(value: number | null | undefined): number | null {
   return Math.round(value * 1000);
 }
 
+/**
+ * Best available "added to this device" timestamp from MediaLibrary fields.
+ *
+ * Expo does not expose MediaStore DATE_ADDED. On Android, `creationTime` maps to
+ * DATE_TAKEN (often empty for audio), while `modificationTime` is the file /
+ * MediaStore mtime - the closest signal for download/copy onto the phone.
+ * On iOS, PHAsset creationDate is closer to when the file entered the library.
+ */
+export function deviceAddedAtMs(asset: {
+  creationTimeMs: number | null;
+  modificationTimeMs: number | null;
+}): number | null {
+  if (Platform.OS === 'android') {
+    return asset.modificationTimeMs ?? asset.creationTimeMs;
+  }
+  return asset.creationTimeMs ?? asset.modificationTimeMs;
+}
+
 function assertNotAborted(signal?: AbortSignal) {
   if (signal?.aborted) {
     throw new DOMException('Audio scan aborted', 'AbortError');
@@ -219,7 +237,7 @@ function toUpsertInput(asset: ScannedAudioAsset): UpsertTrackInput {
     durationMs: asset.durationMs,
     artworkPath: asset.artworkPath,
     folderPath: asset.folderPath,
-    dateAdded: asset.creationTimeMs,
+    dateAdded: deviceAddedAtMs(asset),
     sourceModifiedAt: asset.modificationTimeMs,
   };
 }
