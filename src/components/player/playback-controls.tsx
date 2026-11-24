@@ -1,12 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
 import { NeoIconButton } from '@/components/ui/neo-icon-button';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/store/theme-provider';
 
 export type PlayMode = 'shuffle' | 'all' | 'one';
+
+/** Match song title/artist overlay colors on the glassy player backdrop. */
+const OVERLAY_PRIMARY = '#F5F7FA';
+const OVERLAY_SECONDARY = 'rgba(245, 247, 250, 0.82)';
 
 type PlaybackControlsProps = {
   isPlaying: boolean;
@@ -16,6 +19,8 @@ type PlaybackControlsProps = {
   onNext: () => void;
   onCyclePlayMode: () => void;
   onOpenQueue: () => void;
+  /** When true, use light overlay colors so controls stay visible on album art. */
+  onGlass?: boolean;
 };
 
 const PLAY_MODE_META: Record<
@@ -35,9 +40,13 @@ export function PlaybackControls({
   onNext,
   onCyclePlayMode,
   onOpenQueue,
+  onGlass = false,
 }: PlaybackControlsProps) {
   const { colors } = useTheme();
   const mode = PLAY_MODE_META[playMode];
+  const primary = onGlass ? OVERLAY_PRIMARY : colors.text;
+  const secondary = onGlass ? OVERLAY_SECONDARY : colors.textSecondary;
+  const modeColor = onGlass ? OVERLAY_PRIMARY : colors.accent;
 
   return (
     <View style={styles.row}>
@@ -48,39 +57,54 @@ export function PlaybackControls({
         onPress={onCyclePlayMode}
         style={styles.sideButton}
       >
-        <Ionicons name={mode.icon} size={22} color={colors.accent} />
-        {mode.showOne ? (
-          <AppText variant="caption" tone="accent" style={styles.oneBadge}>
-            1
-          </AppText>
-        ) : null}
+        <Ionicons name={mode.icon} size={22} color={modeColor} />
+        {mode.showOne ? <Text style={[styles.oneBadge, { color: modeColor }]}>1</Text> : null}
       </Pressable>
       <NeoIconButton
         label="Previous track"
         icon="play-skip-back"
-        color={colors.textSecondary}
+        color={secondary}
         onPress={onPrevious}
         variant="ghost"
       />
-      <NeoIconButton
-        label={isPlaying ? 'Pause' : 'Play'}
-        onPress={onTogglePlay}
-        size="lg"
-        color={colors.text}
-      >
-        {isPlaying ? (
-          <View style={styles.pauseIcon}>
-            <View style={[styles.pauseBar, { backgroundColor: colors.text }]} />
-            <View style={[styles.pauseBar, { backgroundColor: colors.text }]} />
-          </View>
-        ) : (
-          <Ionicons name="play" size={28} color={colors.text} style={styles.playGlyph} />
-        )}
-      </NeoIconButton>
+      {onGlass ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+          hitSlop={8}
+          onPress={onTogglePlay}
+          style={styles.playGlass}
+        >
+          {isPlaying ? (
+            <View style={styles.pauseIcon}>
+              <View style={[styles.pauseBar, { backgroundColor: primary }]} />
+              <View style={[styles.pauseBar, { backgroundColor: primary }]} />
+            </View>
+          ) : (
+            <Ionicons name="play" size={28} color={primary} style={styles.playGlyph} />
+          )}
+        </Pressable>
+      ) : (
+        <NeoIconButton
+          label={isPlaying ? 'Pause' : 'Play'}
+          onPress={onTogglePlay}
+          size="lg"
+          color={primary}
+        >
+          {isPlaying ? (
+            <View style={styles.pauseIcon}>
+              <View style={[styles.pauseBar, { backgroundColor: primary }]} />
+              <View style={[styles.pauseBar, { backgroundColor: primary }]} />
+            </View>
+          ) : (
+            <Ionicons name="play" size={28} color={primary} style={styles.playGlyph} />
+          )}
+        </NeoIconButton>
+      )}
       <NeoIconButton
         label="Next track"
         icon="play-skip-forward"
-        color={colors.textSecondary}
+        color={secondary}
         onPress={onNext}
         variant="ghost"
       />
@@ -91,7 +115,7 @@ export function PlaybackControls({
         onPress={onOpenQueue}
         style={styles.sideButton}
       >
-        <Ionicons name="list" size={22} color={colors.textSecondary} />
+        <Ionicons name="list" size={22} color={secondary} />
       </Pressable>
     </View>
   );
@@ -109,6 +133,16 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  playGlass: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(245, 247, 250, 0.18)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(245, 247, 250, 0.45)',
   },
   playGlyph: {
     marginLeft: 3,
