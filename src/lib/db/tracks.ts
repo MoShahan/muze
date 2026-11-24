@@ -139,6 +139,45 @@ export async function listTracks(db: SQLiteDatabase): Promise<CachedTrackRow[]> 
   return rows.map(mapTrackRow);
 }
 
+/**
+ * Songs / Albums / Artists list source: skip hidden folders in SQL so large
+ * libraries never pull excluded rows into JS. Null/empty folder_path stays visible.
+ */
+export async function listVisibleTracks(
+  db: SQLiteDatabase,
+  hiddenFolderPaths: ReadonlySet<string> | readonly string[],
+): Promise<CachedTrackRow[]> {
+  const hidden = [...hiddenFolderPaths]
+    .map((path) => path.trim())
+    .filter((path) => path.length > 0);
+  if (hidden.length === 0) {
+    return listTracks(db);
+  }
+
+  // SQLite default variable limit is high enough for typical hide lists; chunk if huge.
+  const CHUNK = 400;
+  if (hidden.length <= CHUNK) {
+    const placeholders = hidden.map(() => '?').join(', ');
+    const rows = await db.getAllAsync<TrackDbRow>(
+      `${TRACK_SELECT}
+       WHERE folder_path IS NULL OR TRIM(folder_path) = '' OR folder_path NOT IN (${placeholders})
+       ORDER BY title COLLATE NOCASE ASC, artist COLLATE NOCASE ASC`,
+      hidden,
+    );
+    return rows.map(mapTrackRow);
+  }
+
+  const hiddenSet = new Set(hidden);
+  const all = await listTracks(db);
+  return all.filter((track) => {
+    const path = track.folderPath?.trim();
+    if (!path) {
+      return true;
+    }
+    return !hiddenSet.has(path);
+  });
+}
+
 /** Tracks that still need cover extraction (`artwork_path IS NULL`). */
 export async function countTracksMissingArtwork(db: SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ count: number }>(

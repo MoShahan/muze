@@ -1,7 +1,7 @@
 /** Initial Muze SQLite schema. Audio files are never stored here. */
 
 export const DATABASE_NAME = 'muze.db';
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 
 export const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -80,4 +80,10 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY NOT NULL,
   value TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_tracks_folder_path ON tracks(folder_path);
+CREATE INDEX IF NOT EXISTS idx_tracks_artist ON tracks(artist);
+CREATE INDEX IF NOT EXISTS idx_tracks_album_artist ON tracks(album, artist);
+CREATE INDEX IF NOT EXISTS idx_tracks_title ON tracks(title COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_recents_played_at ON recents(played_at DESC);
 `;
