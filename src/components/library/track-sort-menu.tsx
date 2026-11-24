@@ -1,22 +1,59 @@
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { NeoCard } from '@/components/ui/neo-card';
-import { NeoSurface } from '@/components/ui/neo-surface';
-import { Radius, Spacing } from '@/constants/theme';
-import { TRACK_SORT_OPTIONS, type TrackSortKey } from '@/lib/library/sort-tracks';
+import { neoRaisedShadow, Radius, Spacing } from '@/constants/theme';
+import {
+  defaultDirectionForSortKey,
+  TRACK_SORT_OPTIONS,
+  trackSortOptionLabel,
+  type TrackSortDirection,
+  type TrackSortKey,
+} from '@/lib/library/sort-tracks';
 import { useTheme } from '@/store/theme-provider';
+
+export type SortMenuAnchor = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 type TrackSortMenuProps = {
   visible: boolean;
   value: TrackSortKey;
+  direction: TrackSortDirection;
+  anchor: SortMenuAnchor | null;
   onChange: (value: TrackSortKey) => void;
   onClose: () => void;
 };
 
-/** Sort picker modal used by album detail hero Sort control. */
-export function TrackSortMenu({ visible, value, onChange, onClose }: TrackSortMenuProps) {
+const MENU_WIDTH = 220;
+const MENU_ESTIMATED_HEIGHT = 188;
+
+/** Small text dropdown anchored to the sort trigger. */
+export function TrackSortMenu({
+  visible,
+  value,
+  direction,
+  anchor,
+  onChange,
+  onClose,
+}: TrackSortMenuProps) {
   const { colors } = useTheme();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+
+  if (!visible || !anchor) {
+    return null;
+  }
+
+  const openBelow = anchor.y + anchor.height + 6 + MENU_ESTIMATED_HEIGHT < windowHeight - 12;
+  const top = openBelow
+    ? anchor.y + anchor.height + 6
+    : Math.max(12, anchor.y - MENU_ESTIMATED_HEIGHT - 6);
+  const left = Math.min(
+    Math.max(Spacing.two, anchor.x + anchor.width - MENU_WIDTH),
+    windowWidth - MENU_WIDTH - Spacing.two,
+  );
 
   return (
     <Modal
@@ -26,48 +63,68 @@ export function TrackSortMenu({ visible, value, onChange, onClose }: TrackSortMe
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
+      <View style={styles.root}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Dismiss"
+          accessibilityLabel="Dismiss sort options"
           onPress={onClose}
           style={StyleSheet.absoluteFill}
         />
-        <View style={styles.dialogHit}>
-          <NeoCard style={styles.dialog}>
-            <AppText variant="title">Sort tracks</AppText>
-            <View
-              accessibilityRole="radiogroup"
-              accessibilityLabel="Sort tracks"
-              style={styles.list}
-            >
-              {TRACK_SORT_OPTIONS.map((option) => {
-                const selected = option.key === value;
-                return (
-                  <Pressable
-                    key={option.key}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected }}
-                    accessibilityLabel={`Sort by ${option.label}`}
-                    onPress={() => {
-                      onChange(option.key);
-                      onClose();
-                    }}
-                  >
-                    <NeoSurface
-                      variant={selected ? 'raised' : 'pressed'}
-                      radius={Radius.md}
-                      style={styles.option}
-                    >
-                      <AppText variant="label" tone={selected ? 'default' : 'secondary'}>
-                        {option.label}
-                      </AppText>
-                    </NeoSurface>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </NeoCard>
+        <View
+          accessibilityRole="menu"
+          accessibilityLabel="Sort tracks"
+          style={[
+            styles.menu,
+            neoRaisedShadow(colors),
+            {
+              top,
+              left,
+              width: MENU_WIDTH,
+              backgroundColor: colors.surfaceRaised,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          {TRACK_SORT_OPTIONS.map((option, index) => {
+            const selected = option.key === value;
+            // Active row shows the next toggle (e.g. Z-A while sorted A-Z), not the current state.
+            const optionDirection = selected
+              ? direction === 'asc'
+                ? 'desc'
+                : 'asc'
+              : defaultDirectionForSortKey(option.key);
+            const label = trackSortOptionLabel(option.key, optionDirection);
+            const isLast = index === TRACK_SORT_OPTIONS.length - 1;
+            return (
+              <Pressable
+                key={option.key}
+                accessibilityRole="menuitem"
+                accessibilityState={{ selected }}
+                accessibilityLabel={label}
+                onPress={() => {
+                  onChange(option.key);
+                  onClose();
+                }}
+                style={({ pressed }) => [
+                  styles.option,
+                  !isLast && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.border,
+                  },
+                  pressed && { backgroundColor: colors.surfacePressed },
+                  selected && { backgroundColor: colors.surfacePressed },
+                ]}
+              >
+                <AppText
+                  variant="label"
+                  tone={selected ? 'default' : 'secondary'}
+                  style={selected ? styles.selectedLabel : undefined}
+                >
+                  {label}
+                </AppText>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
     </Modal>
@@ -75,26 +132,22 @@ export function TrackSortMenu({ visible, value, onChange, onClose }: TrackSortMe
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  root: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
   },
-  dialogHit: {
-    width: '100%',
-    maxWidth: 360,
-  },
-  dialog: {
-    gap: Spacing.three,
-  },
-  list: {
-    gap: Spacing.two,
+  menu: {
+    position: 'absolute',
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
   },
   option: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.two + 2,
     paddingHorizontal: Spacing.three,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  selectedLabel: {
+    fontWeight: '700',
   },
 });
