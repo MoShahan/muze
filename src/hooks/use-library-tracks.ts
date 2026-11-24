@@ -9,10 +9,21 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { getTrackSort, setTrackSort } from '@/lib/db/settings';
+import {
+  getTrackSort,
+  getTrackSortDirection,
+  setTrackSort,
+  setTrackSortDirection,
+} from '@/lib/db/settings';
 import { listVisibleTracks, type CachedTrackRow } from '@/lib/db/tracks';
 import { matchesLibraryQuery } from '@/lib/library/filter';
-import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
+import {
+  DEFAULT_TRACK_SORT,
+  DEFAULT_TRACK_SORT_DIRECTION,
+  sortTracks,
+  type TrackSortDirection,
+  type TrackSortKey,
+} from '@/lib/library/sort-tracks';
 import { useLibraryVisibility } from '@/store/library-visibility-provider';
 
 type UseLibraryTracksOptions = {
@@ -34,6 +45,9 @@ export function useLibraryTracks({
   const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
   const [tracks, setTracks] = useState<CachedTrackRow[]>([]);
   const [sortKey, setSortKeyState] = useState<TrackSortKey>(DEFAULT_TRACK_SORT);
+  const [sortDirection, setSortDirectionState] = useState<TrackSortDirection>(
+    DEFAULT_TRACK_SORT_DIRECTION,
+  );
   const [isLoading, setIsLoading] = useState(enabled);
   const hasTracksRef = useRef(false);
   const sortLoadedRef = useRef(false);
@@ -71,6 +85,16 @@ export function useLibraryTracks({
     [db, persistSort],
   );
 
+  const setSortDirection = useCallback(
+    (next: TrackSortDirection) => {
+      setSortDirectionState(next);
+      if (persistSort) {
+        void setTrackSortDirection(db, next);
+      }
+    },
+    [db, persistSort],
+  );
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -93,9 +117,13 @@ export function useLibraryTracks({
       try {
         if (persistSort && !sortLoadedRef.current) {
           sortLoadedRef.current = true;
-          const storedSort = await getTrackSort(db);
+          const [storedSort, storedDirection] = await Promise.all([
+            getTrackSort(db),
+            getTrackSortDirection(db),
+          ]);
           if (!cancelled) {
             setSortKeyState(storedSort);
+            setSortDirectionState(storedDirection);
           }
         }
         const next = await listVisibleTracks(db, hiddenFolderPaths);
@@ -121,8 +149,17 @@ export function useLibraryTracks({
         matchesLibraryQuery(track.artist, query) ||
         matchesLibraryQuery(track.album, query),
     );
-    return sortTracks(filtered, sortKey);
-  }, [tracks, query, sortKey]);
+    return sortTracks(filtered, sortKey, sortDirection);
+  }, [tracks, query, sortKey, sortDirection]);
 
-  return { tracks, filteredTracks, sortKey, setSortKey, isLoading, refresh };
+  return {
+    tracks,
+    filteredTracks,
+    sortKey,
+    setSortKey,
+    sortDirection,
+    setSortDirection,
+    isLoading,
+    refresh,
+  };
 }
