@@ -3,11 +3,14 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { TrackSortControl } from '@/components/library/track-sort-control';
 import { AppText } from '@/components/ui/app-text';
 import { NeoIconButton } from '@/components/ui/neo-icon-button';
 import { Spacing } from '@/constants/theme';
 import { artworkDisplayUri } from '@/lib/db/tracks';
 import { useTheme } from '@/store/theme-provider';
+
+import type { TrackSortDirection, TrackSortKey } from '@/lib/library/sort-tracks';
 
 const HERO_HEIGHT_RATIO = 0.6;
 const OVERLAY_TEXT = '#F5F7FA';
@@ -19,7 +22,10 @@ type DetailHeroProps = {
   artworkUri?: string | null;
   onPlay: () => void;
   onShuffle: () => void;
-  onSortPress: () => void;
+  sortValue: TrackSortKey;
+  sortDirection: TrackSortDirection;
+  onSortChange: (value: TrackSortKey) => void;
+  onSortDirectionChange: (direction: TrackSortDirection) => void;
   disabled?: boolean;
 };
 
@@ -29,7 +35,10 @@ export function DetailHero({
   artworkUri,
   onPlay,
   onShuffle,
-  onSortPress,
+  sortValue,
+  sortDirection,
+  onSortChange,
+  onSortDirectionChange,
   disabled = false,
 }: DetailHeroProps) {
   const { width } = useWindowDimensions();
@@ -101,12 +110,12 @@ export function DetailHero({
           onPress={onShuffle}
           disabled={disabled}
         />
-        <NeoIconButton
-          label="Sort"
-          icon="swap-vertical"
-          variant="pressed"
-          size="md"
-          onPress={onSortPress}
+        <TrackSortControl
+          variant="icon"
+          value={sortValue}
+          direction={sortDirection}
+          onChange={onSortChange}
+          onDirectionChange={onSortDirectionChange}
           disabled={disabled}
         />
       </View>
