@@ -2,7 +2,6 @@ import { type Href, router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { AudioPermissionControl } from '@/components/settings/audio-permission-control';
-import { DisplayNameField } from '@/components/settings/display-name-field';
 import { FlacVerifyControl } from '@/components/settings/flac-verify-control';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSection } from '@/components/settings/settings-section';
@@ -33,10 +32,6 @@ export default function SettingsScreen() {
         <View style={styles.themePad}>
           <ThemePreferenceControl />
         </View>
-      </SettingsSection>
-
-      <SettingsSection title="Profile">
-        <DisplayNameField />
       </SettingsSection>
 
       <SettingsSection title="Library">

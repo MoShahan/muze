@@ -35,7 +35,6 @@ Muze is a personal Android music player built with Expo. It scans and plays audi
 - Manage Favorites and recently played tracks (without a separate Home hub).
 - Support system, light, and dark themes.
 - Use a monochrome visual palette of dark gray and muted white, with no bright accent colors.
-- Set an optional display name in Settings (default "Melophile"); editing opens a modal with a text field and a Save button. If a greeting is useful, it may appear as compact header copy on Songs.
 - Use a neomorphic visual style.
 
 ## Out of scope for v1

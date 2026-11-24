@@ -11,9 +11,7 @@ import { NeoCard } from '@/components/ui/neo-card';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission';
-import { useDisplayName } from '@/hooks/use-display-name';
 import { useLibraryTracks } from '@/hooks/use-library-tracks';
-import { formatHomeGreeting } from '@/lib/greeting';
 import { formatDurationMs } from '@/lib/library/filter';
 import { useLibraryScan } from '@/store/library-scan-provider';
 import { usePlayback } from '@/store/playback-provider';
@@ -32,7 +30,6 @@ export default function SongsScreen() {
     isScanning,
     rescan,
   } = useLibraryScan();
-  const { displayName } = useDisplayName();
   const [query, setQuery] = useState('');
   const {
     filteredTracks,
@@ -179,7 +176,6 @@ export default function SongsScreen() {
   return (
     <LibraryBrowser
       title="Songs"
-      greeting={formatHomeGreeting(displayName)}
       statusMessage={statusMessage}
       searchValue={query}
       onSearchChange={setQuery}

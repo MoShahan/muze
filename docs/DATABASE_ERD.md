@@ -99,7 +99,7 @@ erDiagram
 | `tracks`    | `waveforms`         | 1:0..1      | Yes (`ON DELETE CASCADE`) | Cached peak JSON/text for seek UI                               |
 | `artists`   | `tracks` / `albums` | logical 1:N | No FK                     | Derived from tag fields; ids are stable keys for browse screens |
 | `albums`    | `tracks`            | logical 1:N | No FK                     | Same; MediaStore folder "albums" are not used as music albums   |
-| `settings`  | -                   | standalone  | -                         | Key/value prefs (theme, display name, etc.)                     |
+| `settings`  | -                   | standalone  | -                         | Key/value prefs (theme, sort, folders, resume, etc.)            |
 
 ## Notes
 

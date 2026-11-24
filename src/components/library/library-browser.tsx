@@ -15,7 +15,6 @@ import { useTheme } from '@/store/theme-provider';
 type LibraryBrowserProps<T> = {
   title: string;
   subtitle?: string | null;
-  greeting?: string | null;
   statusMessage?: string | null;
   searchValue: string;
   onSearchChange: (value: string) => void;
@@ -37,7 +36,6 @@ type LibraryBrowserProps<T> = {
 export function LibraryBrowser<T>({
   title,
   subtitle,
-  greeting,
   statusMessage,
   searchValue,
   onSearchChange,
@@ -82,11 +80,6 @@ export function LibraryBrowser<T>({
             <Ionicons name="chevron-back" size={22} color={colors.text} />
             <AppText variant="label">Back</AppText>
           </Pressable>
-        ) : null}
-        {greeting ? (
-          <AppText variant="caption" tone="muted">
-            {greeting}
-          </AppText>
         ) : null}
         <AppText variant="display" numberOfLines={2}>
           {title}

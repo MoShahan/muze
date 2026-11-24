@@ -3,11 +3,8 @@ import { DEFAULT_TRACK_SORT, isTrackSortKey, type TrackSortKey } from '@/lib/lib
 import type { ThemePreference } from '@/constants/theme';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export const DEFAULT_DISPLAY_NAME = 'Melophile';
-
 export const SETTINGS_KEYS = {
   themePreference: 'theme_preference',
-  displayName: 'display_name',
   trackSort: 'track_sort',
   /** JSON string array of folder_path values excluded from Songs / library lists. */
   hiddenFolderPaths: 'hidden_folder_paths',
@@ -53,16 +50,6 @@ export async function setThemePreference(
   preference: ThemePreference,
 ): Promise<void> {
   await setSetting(db, SETTINGS_KEYS.themePreference, preference);
-}
-
-export async function getDisplayName(db: SQLiteDatabase): Promise<string> {
-  const value = await getSetting(db, SETTINGS_KEYS.displayName);
-  const trimmed = value?.trim() ?? '';
-  return trimmed.length > 0 ? trimmed : DEFAULT_DISPLAY_NAME;
-}
-
-export async function setDisplayName(db: SQLiteDatabase, name: string): Promise<void> {
-  await setSetting(db, SETTINGS_KEYS.displayName, name.trim());
 }
 
 export async function getTrackSort(db: SQLiteDatabase): Promise<TrackSortKey> {
