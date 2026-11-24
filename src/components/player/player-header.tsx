@@ -121,34 +121,21 @@ export function PlayerHeader({ title = 'NOW PLAYING', trackId }: PlayerHeaderPro
         <Ionicons name="chevron-down" size={24} color={colors.textSecondary} />
       </Pressable>
       <Text style={[styles.title, { color: colors.textMuted }]}>{title}</Text>
-      <View style={styles.rightCluster}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Up next queue"
-          hitSlop={12}
-          onPress={() => router.push('/queue' as Href)}
-          style={styles.side}
-        >
-          <Ionicons name="list" size={22} color={colors.textSecondary} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            remainingLabel
-              ? `More options, sleep timer ${remainingLabel} remaining`
-              : 'More options'
-          }
-          hitSlop={12}
-          onPress={onMore}
-          style={styles.side}
-        >
-          <Ionicons
-            name={sleepTimerEndsAt != null ? 'moon' : 'ellipsis-horizontal'}
-            size={22}
-            color={sleepTimerEndsAt != null ? colors.accent : colors.textSecondary}
-          />
-        </Pressable>
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          remainingLabel ? `More options, sleep timer ${remainingLabel} remaining` : 'More options'
+        }
+        hitSlop={12}
+        onPress={onMore}
+        style={styles.side}
+      >
+        <Ionicons
+          name={sleepTimerEndsAt != null ? 'moon' : 'ellipsis-horizontal'}
+          size={22}
+          color={sleepTimerEndsAt != null ? colors.accent : colors.textSecondary}
+        />
+      </Pressable>
     </View>
   );
 }
@@ -164,10 +151,6 @@ const styles = StyleSheet.create({
   },
   side: {
     width: 40,
-    alignItems: 'center',
-  },
-  rightCluster: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   title: {

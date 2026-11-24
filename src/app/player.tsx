@@ -1,3 +1,4 @@
+import { type Href, router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -123,6 +124,7 @@ export default function PlayerScreen() {
           onPrevious={playPrevious}
           onNext={playNext}
           onCyclePlayMode={cyclePlayMode}
+          onOpenQueue={() => router.push('/queue' as Href)}
         />
       </View>
     </View>

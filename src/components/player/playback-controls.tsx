@@ -15,6 +15,7 @@ type PlaybackControlsProps = {
   onPrevious: () => void;
   onNext: () => void;
   onCyclePlayMode: () => void;
+  onOpenQueue: () => void;
 };
 
 const PLAY_MODE_META: Record<
@@ -33,12 +34,27 @@ export function PlaybackControls({
   onPrevious,
   onNext,
   onCyclePlayMode,
+  onOpenQueue,
 }: PlaybackControlsProps) {
   const { colors } = useTheme();
   const mode = PLAY_MODE_META[playMode];
 
   return (
     <View style={styles.row}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={mode.label}
+        hitSlop={8}
+        onPress={onCyclePlayMode}
+        style={styles.sideButton}
+      >
+        <Ionicons name={mode.icon} size={22} color={colors.accent} />
+        {mode.showOne ? (
+          <AppText variant="caption" tone="accent" style={styles.oneBadge}>
+            1
+          </AppText>
+        ) : null}
+      </Pressable>
       <NeoIconButton
         label="Previous track"
         icon="play-skip-back"
@@ -70,17 +86,12 @@ export function PlaybackControls({
       />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={mode.label}
+        accessibilityLabel="Up next queue"
         hitSlop={8}
-        onPress={onCyclePlayMode}
+        onPress={onOpenQueue}
         style={styles.sideButton}
       >
-        <Ionicons name={mode.icon} size={22} color={colors.accent} />
-        {mode.showOne ? (
-          <AppText variant="caption" tone="accent" style={styles.oneBadge}>
-            1
-          </AppText>
-        ) : null}
+        <Ionicons name="list" size={22} color={colors.textSecondary} />
       </Pressable>
     </View>
   );
