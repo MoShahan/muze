@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -47,7 +48,16 @@ export function DetailHero({
           transition={120}
         />
       ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surfacePressed }]} />
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            styles.artFallback,
+            { backgroundColor: colors.surfacePressed },
+          ]}
+          accessibilityLabel="No album art"
+        >
+          <Ionicons name="musical-notes" size={72} color={colors.textMuted} />
+        </View>
       )}
 
       <LinearGradient
@@ -108,6 +118,10 @@ const styles = StyleSheet.create({
   root: {
     overflow: 'hidden',
     alignSelf: 'center',
+  },
+  artFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   topScrim: {
     position: 'absolute',

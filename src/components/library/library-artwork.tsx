@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
@@ -13,19 +14,32 @@ type LibraryArtworkProps = {
   round?: boolean;
 };
 
-export function LibraryArtwork({ uri, size, round = false }: LibraryArtworkProps) {
+/** Muted default cover when a track/album has no embedded art. */
+function ArtworkPlaceholder({ size, round }: { size: number; round: boolean }) {
   const { colors } = useTheme();
+  const radius = round ? size / 2 : Radius.md;
+  const iconSize = Math.max(14, Math.round(size * 0.42));
+
+  return (
+    <NeoSurface
+      variant="pressed"
+      radius={radius}
+      style={[
+        styles.placeholder,
+        { width: size, height: size, backgroundColor: colors.surfacePressed },
+      ]}
+    >
+      <Ionicons name="musical-notes" size={iconSize} color={colors.textMuted} />
+    </NeoSurface>
+  );
+}
+
+export function LibraryArtwork({ uri, size, round = false }: LibraryArtworkProps) {
   const radius = round ? size / 2 : Radius.md;
   const displayUri = artworkDisplayUri(uri);
 
   if (!displayUri) {
-    return (
-      <NeoSurface
-        variant="pressed"
-        radius={radius}
-        style={{ width: size, height: size, backgroundColor: colors.surfacePressed }}
-      />
-    );
+    return <ArtworkPlaceholder size={size} round={round} />;
   }
 
   return (
@@ -46,5 +60,9 @@ const styles = StyleSheet.create({
   frame: {
     overflow: 'hidden',
     borderCurve: 'continuous',
+  },
+  placeholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
