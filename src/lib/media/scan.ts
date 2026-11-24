@@ -3,12 +3,13 @@
  *
  * Walks `MediaType.AUDIO` in pages (`SCAN_BATCH_SIZE`), skips short clips, and
  * only re-parses tags/art when `shouldReparseTrack` says the file changed.
- * Callers must process each `onBatch` page and discard it — never accumulate
+ * Callers must process each `onBatch` page and discard it - never accumulate
  * the full library in memory.
  */
 import { AssetField, MediaType, Query } from 'expo-media-library';
 import { Platform } from 'react-native';
 
+import { mapPool } from '@/lib/async/map-pool';
 import { folderPathFromUri } from '@/lib/media/folder-path';
 import {
   artworkFileExists,
@@ -83,7 +84,7 @@ export type ScanAudioLibraryOptions = {
   /** Persist parsed metadata + artwork paths after each batch. */
   persistTracks?: (tracks: UpsertTrackInput[]) => Promise<void>;
   /**
-   * Called once per batch. The batch array is only valid for this call —
+   * Called once per batch. The batch array is only valid for this call -
    * do not retain it if you want to avoid holding the full library in memory.
    */
   onBatch: (batch: ScannedAudioAsset[], progress: AudioScanProgress) => void | Promise<void>;
@@ -91,6 +92,8 @@ export type ScanAudioLibraryOptions = {
 
 /** Default bounded page size for MediaLibrary queries. */
 export const SCAN_BATCH_SIZE = 50;
+/** Cap parallel `getInfo()` calls per page (unbounded Promise.all spikes on FLAC). */
+export const SCAN_GET_INFO_CONCURRENCY = 6;
 
 /**
  * Skip very short clips (notifications, UI sounds, many ringtones).
@@ -114,7 +117,7 @@ function mediaLibraryDurationToMs(value: number | null | undefined): number {
   return Math.round(value * 1000);
 }
 
-/** Minimum duration for Query.gte — Android MediaStore column is milliseconds. */
+/** Minimum duration for Query.gte - Android MediaStore column is milliseconds. */
 function minMusicDurationQueryValue(): number {
   return Platform.OS === 'android' ? MIN_MUSIC_DURATION_SECONDS * 1000 : MIN_MUSIC_DURATION_SECONDS;
 }
@@ -244,8 +247,10 @@ export async function queryAudioAssetPage(
 
   assertNotAborted(signal);
 
-  const page: RawScannedAudioAsset[] = await Promise.all(
-    assets.map(async (asset) => {
+  const page: RawScannedAudioAsset[] = await mapPool(
+    assets,
+    SCAN_GET_INFO_CONCURRENCY,
+    async (asset) => {
       const info = await asset.getInfo();
       // Prefer path-from-URI only during scan; album title lookup is expensive at scale.
       const folderPath = folderPathFromUri(info.uri, info.filename);
@@ -258,7 +263,8 @@ export async function queryAudioAssetPage(
         modificationTimeMs: optionalEpochToMs(info.modificationTime),
         folderPath,
       } satisfies RawScannedAudioAsset;
-    }),
+    },
+    { signal },
   );
 
   assertNotAborted(signal);
