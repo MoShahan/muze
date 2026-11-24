@@ -1,8 +1,7 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
-import { NeoSurface } from '@/components/ui/neo-surface';
-import { Radius, Spacing } from '@/constants/theme';
+import { NeoIconButton } from '@/components/ui/neo-icon-button';
+import { Spacing } from '@/constants/theme';
 
 type DetailActionsProps = {
   onPlay: () => void;
@@ -13,28 +12,22 @@ type DetailActionsProps = {
 export function DetailActions({ onPlay, onShuffle, disabled = false }: DetailActionsProps) {
   return (
     <View style={styles.row}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Play"
+      <NeoIconButton
+        label="Play"
+        icon="play"
+        variant="raised"
+        size="md"
         onPress={onPlay}
         disabled={disabled}
-        style={styles.flex}
-      >
-        <NeoSurface variant="raised" radius={Radius.md} style={styles.button}>
-          <AppText variant="label">Play</AppText>
-        </NeoSurface>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Shuffle"
+      />
+      <NeoIconButton
+        label="Shuffle"
+        icon="shuffle"
+        variant="pressed"
+        size="md"
         onPress={onShuffle}
         disabled={disabled}
-        style={styles.flex}
-      >
-        <NeoSurface variant="pressed" radius={Radius.md} style={styles.button}>
-          <AppText variant="label">Shuffle</AppText>
-        </NeoSurface>
-      </Pressable>
+      />
     </View>
   );
 }
@@ -42,14 +35,7 @@ export function DetailActions({ onPlay, onShuffle, disabled = false }: DetailAct
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  flex: {
-    flex: 1,
-  },
-  button: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.three,
+    gap: Spacing.two,
   },
 });

@@ -16,6 +16,7 @@ type NeoIconButtonProps = {
   style?: StyleProp<ViewStyle>;
   icon?: keyof typeof Ionicons.glyphMap;
   children?: ReactNode;
+  disabled?: boolean;
 };
 
 const SIZE_MAP: Record<NeoIconButtonSize, { box: number; icon: number }> = {
@@ -33,18 +34,21 @@ export function NeoIconButton({
   style,
   icon,
   children,
+  disabled = false,
 }: NeoIconButtonProps) {
   const { colors } = useTheme();
   const dims = SIZE_MAP[size];
-  const iconColor = color ?? colors.text;
+  const iconColor = disabled ? colors.textMuted : (color ?? colors.text);
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       hitSlop={8}
       onPress={onPress}
-      style={style}
+      disabled={disabled}
+      style={[style, disabled ? styles.disabled : null]}
     >
       <NeoSurface
         variant={variant}
@@ -61,5 +65,8 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  disabled: {
+    opacity: 0.45,
   },
 });

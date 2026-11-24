@@ -30,6 +30,10 @@ type LibraryBrowserProps<T> = {
   refreshing?: boolean;
   onRefresh?: () => void;
   headerExtra?: ReactNode;
+  /** When true, title/subtitle/status are omitted (e.g. album hero owns them). */
+  hideTitle?: boolean;
+  /** When true, headerExtra spans edge-to-edge above search. */
+  headerExtraBleed?: boolean;
   onBack?: () => void;
 };
 
@@ -51,6 +55,8 @@ export function LibraryBrowser<T>({
   refreshing = false,
   onRefresh,
   headerExtra,
+  hideTitle = false,
+  headerExtraBleed = false,
   onBack,
 }: LibraryBrowserProps<T>): ReactElement {
   const { colors } = useTheme();
@@ -65,41 +71,56 @@ export function LibraryBrowser<T>({
           styles.header,
           {
             paddingTop: insets.top + Spacing.three,
-            paddingHorizontal: Spacing.four,
+            paddingHorizontal: headerExtraBleed ? 0 : Spacing.four,
           },
         ]}
       >
-        {onBack ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={onBack}
-            hitSlop={8}
-            style={styles.backRow}
-          >
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-            <AppText variant="label">Back</AppText>
-          </Pressable>
-        ) : null}
-        <AppText variant="display" numberOfLines={2}>
-          {title}
-        </AppText>
-        {subtitle ? (
-          <AppText variant="subtitle" tone="secondary" numberOfLines={2}>
-            {subtitle}
-          </AppText>
-        ) : null}
-        {statusMessage ? (
-          <AppText variant="caption" tone="secondary">
-            {statusMessage}
-          </AppText>
-        ) : null}
-        <LibrarySearchField
-          value={searchValue}
-          onChangeText={onSearchChange}
-          placeholder={searchPlaceholder}
-        />
+        <View style={[styles.titleBlock, headerExtraBleed ? styles.insetPad : null]}>
+          {onBack ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={onBack}
+              hitSlop={8}
+              style={styles.backRow}
+            >
+              <Ionicons name="chevron-back" size={22} color={colors.text} />
+              <AppText variant="label">Back</AppText>
+            </Pressable>
+          ) : null}
+          {!hideTitle ? (
+            <>
+              <AppText variant="display" numberOfLines={2}>
+                {title}
+              </AppText>
+              {subtitle ? (
+                <AppText variant="subtitle" tone="secondary" numberOfLines={2}>
+                  {subtitle}
+                </AppText>
+              ) : null}
+              {statusMessage ? (
+                <AppText variant="caption" tone="secondary">
+                  {statusMessage}
+                </AppText>
+              ) : null}
+            </>
+          ) : null}
+        </View>
+
         {headerExtra}
+
+        <View style={[styles.searchBlock, headerExtraBleed ? styles.insetPad : null]}>
+          {hideTitle && statusMessage ? (
+            <AppText variant="caption" tone="secondary">
+              {statusMessage}
+            </AppText>
+          ) : null}
+          <LibrarySearchField
+            value={searchValue}
+            onChangeText={onSearchChange}
+            placeholder={searchPlaceholder}
+          />
+        </View>
       </View>
 
       <FlashList
@@ -144,6 +165,15 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.two,
     paddingBottom: Spacing.two,
+  },
+  titleBlock: {
+    gap: Spacing.two,
+  },
+  insetPad: {
+    paddingHorizontal: Spacing.four,
+  },
+  searchBlock: {
+    gap: Spacing.two,
   },
   backRow: {
     flexDirection: 'row',

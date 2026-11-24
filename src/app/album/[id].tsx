@@ -1,12 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
 
 import { DetailHero } from '@/components/library/detail-hero';
 import { LibraryBrowser } from '@/components/library/library-browser';
 import { TrackListItem } from '@/components/library/track-list-item';
-import { TrackSortControl } from '@/components/library/track-sort-control';
+import { TrackSortMenu } from '@/components/library/track-sort-menu';
 import { getAlbumById, type AlbumRow } from '@/lib/db/albums';
 import { listTracksForAlbum, type CachedTrackRow } from '@/lib/db/tracks';
 import { formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
@@ -26,6 +25,7 @@ export default function AlbumDetailScreen() {
   const [tracks, setTracks] = useState<CachedTrackRow[]>([]);
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<TrackSortKey>(DEFAULT_TRACK_SORT);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -112,40 +112,49 @@ export default function AlbumDetailScreen() {
   );
 
   return (
-    <LibraryBrowser
-      title={album?.title ?? (isLoading ? 'Album' : 'Album not found')}
-      subtitle={album ? album.artist : null}
-      statusMessage={
-        album ? `${filteredTracks.length} track${filteredTracks.length === 1 ? '' : 's'}` : null
-      }
-      searchValue={query}
-      onSearchChange={setQuery}
-      searchPlaceholder="Search album tracks"
-      data={filteredTracks}
-      keyExtractor={(item) => item.id}
-      renderItem={renderItem}
-      emptyTitle={isLoading ? 'Loading…' : album ? 'No matching tracks' : 'Album missing'}
-      emptySubtitle={
-        isLoading
-          ? 'Reading album from SQLite.'
-          : album
-            ? 'Try a different search.'
-            : 'This album is no longer in the library. Rescan from Songs.'
-      }
-      onBack={() => router.back()}
-      headerExtra={
-        album ? (
-          <View style={{ gap: 12 }}>
+    <>
+      <LibraryBrowser
+        title={album?.title ?? (isLoading ? 'Album' : 'Album not found')}
+        hideTitle={Boolean(album)}
+        headerExtraBleed={Boolean(album)}
+        statusMessage={
+          album ? `${filteredTracks.length} track${filteredTracks.length === 1 ? '' : 's'}` : null
+        }
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search album tracks"
+        data={filteredTracks}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        emptyTitle={isLoading ? 'Loading…' : album ? 'No matching tracks' : 'Album missing'}
+        emptySubtitle={
+          isLoading
+            ? 'Reading album from SQLite.'
+            : album
+              ? 'Try a different search.'
+              : 'This album is no longer in the library. Rescan from Songs.'
+        }
+        onBack={() => router.back()}
+        headerExtra={
+          album ? (
             <DetailHero
+              title={album.title}
+              subtitle={album.artist}
               artworkUri={album.artworkPath}
               disabled={tracks.length === 0}
               onPlay={() => playFrom(filteredTracks[0]?.id ?? tracks[0]?.id ?? null, false)}
               onShuffle={() => playFrom(null, true)}
+              onSortPress={() => setSortMenuOpen(true)}
             />
-            <TrackSortControl value={sortKey} onChange={setSortKey} />
-          </View>
-        ) : null
-      }
-    />
+          ) : null
+        }
+      />
+      <TrackSortMenu
+        visible={sortMenuOpen}
+        value={sortKey}
+        onChange={setSortKey}
+        onClose={() => setSortMenuOpen(false)}
+      />
+    </>
   );
 }
