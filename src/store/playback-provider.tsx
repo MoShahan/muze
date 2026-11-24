@@ -3,8 +3,9 @@
  *
  * Uses a playlist (not a single AudioPlayer) so Android/iOS media-session
  * next/previous actions from headsets, Bluetooth, and the lock-screen
- * notification can advance the queue. JS still owns shuffle/repeat policy,
- * resume persistence, and sleep timer.
+ * notification can advance the queue. Activates lock-screen / media
+ * notification metadata (title, artist, artwork) for background playback.
+ * JS still owns shuffle/repeat policy, resume persistence, and sleep timer.
  */
 import {
   setAudioModeAsync,
@@ -29,8 +30,9 @@ import {
   getPlaybackResumeState,
   setPlaybackResumeState,
 } from '@/lib/db/settings';
-import { getTrackById, type CachedTrackRow } from '@/lib/db/tracks';
+import { artworkDisplayUri, getTrackById, type CachedTrackRow } from '@/lib/db/tracks';
 import { shuffleTracksKeepingCurrent } from '@/lib/library/playback-queue';
+import { ensurePlaybackNotificationPermission } from '@/lib/media/playback-notifications';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
@@ -92,14 +94,13 @@ const LOCK_SCREEN_OPTIONS = {
   showSeekBackward: false,
 } as const;
 
-function toArtworkUrl(uri: string | null | undefined): string | undefined {
-  if (!uri) {
-    return undefined;
-  }
-  if (uri.startsWith('file://') || uri.startsWith('content://') || uri.startsWith('http')) {
-    return uri;
-  }
-  return `file://${uri}`;
+function lockScreenMetadata(track: PlaybackTrack) {
+  return {
+    title: track.title,
+    artist: track.artist,
+    albumTitle: track.album,
+    artworkUrl: artworkDisplayUri(track.artworkUri) ?? undefined,
+  };
 }
 
 function playModeFromFlags(shuffle: boolean, repeat: RepeatMode): PlayMode {
@@ -169,6 +170,7 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   const pendingResumeSeekMsRef = useRef<number | null>(null);
   const lastPersistedAtRef = useRef(0);
   const currentTrackIdRef = useRef<string | null>(null);
+  const currentTrackRef = useRef<PlaybackTrack | null>(null);
   const sleepTimerEndsAtRef = useRef<number | null>(null);
   const sleepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nativeQueueSignatureRef = useRef('');
@@ -197,14 +199,19 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     currentTrackIdRef.current = currentTrack?.id ?? null;
-  }, [currentTrack?.id]);
+    currentTrackRef.current = currentTrack;
+  }, [currentTrack]);
 
   useEffect(() => {
-    void setAudioModeAsync({
-      playsInSilentMode: true,
-      shouldPlayInBackground: true,
-      interruptionMode: 'doNotMix',
-    });
+    void (async () => {
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'doNotMix',
+      });
+      // Android 13+: needed so the media-session notification appears in the shade.
+      await ensurePlaybackNotificationPermission();
+    })();
   }, []);
 
   const persistResumeState = useCallback(
@@ -234,28 +241,18 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     try {
       playlistRef.current.setActiveForLockScreen(
         true,
-        {
-          title: track.title,
-          artist: track.artist,
-          albumTitle: track.album,
-          artworkUrl: toArtworkUrl(track.artworkUri),
-        },
+        lockScreenMetadata(track),
         LOCK_SCREEN_OPTIONS,
       );
     } catch {
-      // Lock screen metadata is best-effort until notification polish lands.
+      // Lock screen / notification controls are best-effort on misconfigured builds.
     }
   }, []);
 
   const updateLockScreen = useCallback(
     (track: PlaybackTrack) => {
       try {
-        playlistRef.current.updateLockScreenMetadata({
-          title: track.title,
-          artist: track.artist,
-          albumTitle: track.album,
-          artworkUrl: toArtworkUrl(track.artworkUri),
-        });
+        playlistRef.current.updateLockScreenMetadata(lockScreenMetadata(track));
       } catch {
         applyLockScreen(track);
       }
@@ -650,6 +647,15 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     positionMsRef.current = positionMs;
   }, [positionMs]);
 
+  // Re-assert media-session metadata when playback starts so the notification
+  // shows title / artist / artwork while audio continues in the background.
+  useEffect(() => {
+    if (!isPlaying || !currentTrack) {
+      return;
+    }
+    applyLockScreen(currentTrack);
+  }, [applyLockScreen, currentTrack, isPlaying]);
+
   // Throttled position flush while playing; always flush when paused with a track.
   useEffect(() => {
     if (!resumeReadyRef.current || !currentTrack) {
@@ -658,8 +664,8 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     void persistResumeState(currentTrack.id, positionMs, !isPlaying);
   }, [currentTrack, isPlaying, persistResumeState, positionMs]);
 
-  // Flush resume on background; catch up sleep timer when returning to foreground
-  // (JS timers can be delayed while suspended).
+  // Flush resume on background; keep media notification alive; catch up sleep timer
+  // when returning to foreground (JS timers can be delayed while suspended).
   useEffect(() => {
     const onChange = (next: AppStateStatus) => {
       if (next === 'active') {
@@ -674,11 +680,15 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
         scheduleSleepTimeout();
         return;
       }
+      const track = currentTrackRef.current;
+      if (track) {
+        applyLockScreen(track);
+      }
       void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
     };
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
-  }, [fireSleepTimer, persistResumeState, scheduleSleepTimeout]);
+  }, [applyLockScreen, fireSleepTimer, persistResumeState, scheduleSleepTimeout]);
 
   const durationMs = Math.round(
     status.duration && status.duration > 0
