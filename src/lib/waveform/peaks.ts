@@ -2,17 +2,11 @@
 export const WAVEFORM_BAR_COUNT = 180;
 
 /**
- * Soft placeholder envelope shown while real peaks are generated/cached.
- * Values are 0-1; shape is intentionally gentle so it reads as “loading,” not a track.
+ * Flat low peaks (legacy helper for tests). The now-playing UI uses a single
+ * horizontal seek line while loading instead of a fake envelope.
  */
 export function createPlaceholderPeaks(barCount: number = WAVEFORM_BAR_COUNT): number[] {
-  const peaks: number[] = [];
-  for (let i = 0; i < barCount; i += 1) {
-    const t = i / Math.max(1, barCount - 1);
-    const wave = 0.28 + 0.18 * Math.sin(t * Math.PI * 4) + 0.08 * Math.sin(t * Math.PI * 11);
-    peaks.push(Math.min(0.55, Math.max(0.12, wave)));
-  }
-  return peaks;
+  return new Array(barCount).fill(0.08);
 }
 
 export const PLACEHOLDER_WAVEFORM_PEAKS = createPlaceholderPeaks();

@@ -1,6 +1,7 @@
 /**
  * Loads cached waveform peaks for the current track, or generates and caches
- * them on first open. Shows a placeholder envelope until real peaks are ready.
+ * them on first open. Until real peaks are ready the seek UI shows a flat line
+ * (not a fake waveform envelope).
  *
  * Full-file decode (especially FLAC) is deferred with requestIdleCallback so
  * opening now-playing stays responsive on large libraries.
@@ -11,7 +12,6 @@ import { useEffect, useState } from 'react';
 
 import { getWaveformPeaks, setWaveformPeaks } from '@/lib/db/waveforms';
 import { extractTrackPeaks } from '@/lib/waveform/extract-peaks';
-import { PLACEHOLDER_WAVEFORM_PEAKS } from '@/lib/waveform/peaks';
 
 type UseTrackWaveformOptions = {
   trackId: string | null | undefined;
@@ -29,7 +29,7 @@ export function useTrackWaveform({
   uri,
 }: UseTrackWaveformOptions): UseTrackWaveformResult {
   const db = useSQLiteContext();
-  const [peaks, setPeaks] = useState<number[]>(PLACEHOLDER_WAVEFORM_PEAKS);
+  const [peaks, setPeaks] = useState<number[]>([]);
   const [isPlaceholder, setIsPlaceholder] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,13 +44,13 @@ export function useTrackWaveform({
       }
 
       if (!trackId || !uri) {
-        setPeaks(PLACEHOLDER_WAVEFORM_PEAKS);
+        setPeaks([]);
         setIsPlaceholder(true);
         setIsLoading(false);
         return;
       }
 
-      setPeaks(PLACEHOLDER_WAVEFORM_PEAKS);
+      setPeaks([]);
       setIsPlaceholder(true);
       setIsLoading(true);
 
@@ -83,8 +83,8 @@ export function useTrackWaveform({
         void setWaveformPeaks(db, trackId, extracted);
       } catch {
         if (!cancelled) {
-          // Keep the soft placeholder so seeking UI still works.
-          setPeaks(PLACEHOLDER_WAVEFORM_PEAKS);
+          // Keep the flat seek line so seeking still works if decode fails.
+          setPeaks([]);
           setIsPlaceholder(true);
         }
       } finally {

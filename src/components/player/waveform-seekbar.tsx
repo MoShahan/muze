@@ -19,9 +19,12 @@ type WaveformSeekbarProps = {
   progress: number;
   durationMs: number;
   onSeek: (progress: number) => void;
-  /** Soft placeholder while real peaks generate; seeking still works. */
+  /** True while real peaks load - show a flat seek line, not a fake waveform. */
   isPlaceholder?: boolean;
 };
+
+const WAVE_HEIGHT = 56;
+const LINE_HEIGHT = 3;
 
 export function WaveformSeekbar({
   peaks,
@@ -64,36 +67,61 @@ export function WaveformSeekbar({
   const barCount = peaks.length;
   const gap = 2;
   const barWidth = width > 0 && barCount > 0 ? (width - gap * (barCount - 1)) / barCount : 0;
-  const height = 56;
   const elapsedMs = durationMs * progress;
+  const lineY = (WAVE_HEIGHT - LINE_HEIGHT) / 2;
+  const playedWidth = Math.max(0, Math.min(width, width * progress));
 
   return (
     <View style={styles.container}>
       <GestureDetector gesture={gesture}>
         <View
-          style={[styles.waveHit, isPlaceholder ? styles.placeholder : null]}
+          style={styles.waveHit}
           onLayout={onLayout}
+          accessibilityLabel={isPlaceholder ? 'Loading waveform' : 'Waveform seek bar'}
         >
           {width > 0 ? (
-            <Svg width={width} height={height}>
-              {peaks.map((peak, index) => {
-                const barHeight = Math.max(4, peak * height);
-                const x = index * (barWidth + gap);
-                const y = (height - barHeight) / 2;
-                const played = !isPlaceholder && index / barCount <= progress;
-                return (
+            isPlaceholder ? (
+              <Svg width={width} height={WAVE_HEIGHT}>
+                <Rect
+                  x={0}
+                  y={lineY}
+                  width={width}
+                  height={LINE_HEIGHT}
+                  rx={LINE_HEIGHT / 2}
+                  fill={colors.waveformRemaining}
+                />
+                {playedWidth > 0 ? (
                   <Rect
-                    key={index}
-                    x={x}
-                    y={y}
-                    width={Math.max(1, barWidth)}
-                    height={barHeight}
-                    rx={1}
-                    fill={played ? colors.waveformPlayed : colors.waveformRemaining}
+                    x={0}
+                    y={lineY}
+                    width={playedWidth}
+                    height={LINE_HEIGHT}
+                    rx={LINE_HEIGHT / 2}
+                    fill={colors.waveformPlayed}
                   />
-                );
-              })}
-            </Svg>
+                ) : null}
+              </Svg>
+            ) : (
+              <Svg width={width} height={WAVE_HEIGHT}>
+                {peaks.map((peak, index) => {
+                  const barHeight = Math.max(4, peak * WAVE_HEIGHT);
+                  const x = index * (barWidth + gap);
+                  const y = (WAVE_HEIGHT - barHeight) / 2;
+                  const played = index / barCount <= progress;
+                  return (
+                    <Rect
+                      key={index}
+                      x={x}
+                      y={y}
+                      width={Math.max(1, barWidth)}
+                      height={barHeight}
+                      rx={1}
+                      fill={played ? colors.waveformPlayed : colors.waveformRemaining}
+                    />
+                  );
+                })}
+              </Svg>
+            )
           ) : null}
         </View>
       </GestureDetector>
@@ -116,11 +144,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
   },
   waveHit: {
-    height: 56,
+    height: WAVE_HEIGHT,
     justifyContent: 'center',
-  },
-  placeholder: {
-    opacity: 0.45,
   },
   times: {
     flexDirection: 'row',
