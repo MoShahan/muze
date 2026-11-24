@@ -32,6 +32,9 @@ export type TrackEditSaveReport = {
 /**
  * Apply editor changes as two independent operations (tags vs rename).
  * Updates SQLite only after each device write succeeds.
+ *
+ * Either step may recreate the MediaStore asset (new `id` / `uri`). Always use
+ * `report.trackId` afterward — playlists/favorites follow via `replaceTrackIdentity`.
  */
 export async function saveTrackEdits(
   db: SQLiteDatabase,

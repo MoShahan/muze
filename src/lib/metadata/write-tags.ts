@@ -1,3 +1,8 @@
+/**
+ * In-memory tag rewrite via `music-metadata` `updateBuffer`.
+ * Patches container metadata only — never re-encodes PCM/compressed audio frames.
+ * Filename rename is a separate MediaStore/file op in `track-file-ops.ts`.
+ */
 import { updateBuffer, type TagPatch } from 'music-metadata';
 
 import type { TrackMetadataUpdate } from '@/lib/db/tracks';

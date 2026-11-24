@@ -2,6 +2,10 @@
  * Device file operations for the track editor: tag write, rename, delete.
  * Tag writes and renames stay independent. Android system approval is required
  * for MediaLibrary delete / recreate flows.
+ *
+ * Prefer in-place `File` write/rename when the URI is writable. Otherwise stage
+ * bytes → `Asset.create` → delete old asset (user may see a system prompt).
+ * Recreate paths return a **new** MediaStore id — callers must update SQLite.
  */
 import { Directory, File, Paths } from 'expo-file-system';
 import { Asset } from 'expo-media-library';

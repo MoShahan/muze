@@ -1,3 +1,8 @@
+/**
+ * Tag + optional embedded-art parse for scanned audio.
+ * Reads only a header window (larger for FLAC art) — never the whole file —
+ * then falls back to filename / Unknown Artist / Unknown Album when tags are missing.
+ */
 import { EncodingType, getInfoAsync, readAsStringAsync } from 'expo-file-system/legacy';
 import { parseBuffer } from 'music-metadata';
 

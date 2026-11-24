@@ -1,3 +1,11 @@
+/**
+ * Sleep-timer UI helpers.
+ *
+ * The timer itself lives in `PlaybackProvider`: it stores an absolute `endsAt`
+ * epoch and pauses playback when that time is reached (with AppState catch-up
+ * because JS `setTimeout` is unreliable while the app is backgrounded).
+ */
+
 /** Preset durations offered in the now-playing sleep timer picker. */
 export const SLEEP_TIMER_PRESETS_MS = [
   { label: '15 minutes', durationMs: 15 * 60 * 1000 },

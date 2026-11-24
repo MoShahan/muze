@@ -1,3 +1,7 @@
+/**
+ * Key/value prefs in the `settings` table (theme, sort, hidden folders, resume).
+ * Resume keys are written often while playing — keep values small strings only.
+ */
 import { DEFAULT_TRACK_SORT, isTrackSortKey, type TrackSortKey } from '@/lib/library/sort-tracks';
 
 import type { ThemePreference } from '@/constants/theme';
@@ -94,6 +98,7 @@ export async function setHiddenFolderPaths(
   await setSetting(db, SETTINGS_KEYS.hiddenFolderPaths, JSON.stringify(normalized));
 }
 
+/** Cold-start restore payload: last MediaStore track id + exact seek position. */
 export async function getPlaybackResumeState(
   db: SQLiteDatabase,
 ): Promise<PlaybackResumeState | null> {
@@ -107,6 +112,7 @@ export async function getPlaybackResumeState(
   return { trackId, positionMs };
 }
 
+/** Persist resume — throttled by PlaybackProvider while playing; forced on pause. */
 export async function setPlaybackResumeState(
   db: SQLiteDatabase,
   state: PlaybackResumeState,

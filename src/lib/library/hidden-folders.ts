@@ -1,3 +1,8 @@
+/**
+ * Folder-visibility filters for Songs / Albums / Artists.
+ * Hidden paths live in settings; folder browse itself still lists every folder
+ * so the user can unhide them. Albums/artists are rebuilt from the visible subset.
+ */
 import { albumArtistLabel, albumIdFor, artistIdFor } from '@/lib/db/ids';
 
 import type { AlbumRow } from '@/lib/db/albums';

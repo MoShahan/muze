@@ -1,3 +1,11 @@
+/**
+ * Batched MediaStore audio scan with SQLite + artwork cache reuse.
+ *
+ * Walks `MediaType.AUDIO` in pages (`SCAN_BATCH_SIZE`), skips short clips, and
+ * only re-parses tags/art when `shouldReparseTrack` says the file changed.
+ * Callers must process each `onBatch` page and discard it — never accumulate
+ * the full library in memory.
+ */
 import { AssetField, MediaType, Query } from 'expo-media-library';
 import { Platform } from 'react-native';
 

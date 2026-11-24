@@ -70,6 +70,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
     setBatchIndex(0);
     setErrorMessage(null);
 
+    // Ids observed this walk — finalize prunes SQLite rows that disappeared from MediaStore.
     const seenIds = new Set<string>();
 
     try {

@@ -161,6 +161,7 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
 
   const [currentTrack, setCurrentTrackState] = useState<PlaybackTrack | null>(null);
   const [queue, setQueueState] = useState<PlaybackTrack[]>([]);
+  /** Unshuffled order so turning shuffle off restores the user's sequence. */
   const [originalQueue, setOriginalQueue] = useState<PlaybackTrack[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [repeat, setRepeatState] = useState<RepeatMode>('all');
@@ -172,7 +173,9 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   const repeatRef = useRef(repeat);
   const shuffleRef = useRef(shuffle);
   const positionMsRef = useRef(0);
+  /** False until cold-start resume finishes so we do not overwrite saved position early. */
   const resumeReadyRef = useRef(false);
+  /** Seek applied after the restored source reports `isLoaded` (stay paused). */
   const pendingResumeSeekMsRef = useRef<number | null>(null);
   const lastPersistedAtRef = useRef(0);
   const currentTrackIdRef = useRef<string | null>(null);
@@ -576,6 +579,8 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     setPlayMode(next);
   }, [playMode, setPlayMode]);
 
+  // Sleep timer: store an absolute end time (not a relative countdown) so we can
+  // catch up after AppState backgrounding when JS timers may be delayed/suspended.
   const clearSleepTimeoutOnly = useCallback(() => {
     if (sleepTimeoutRef.current != null) {
       clearTimeout(sleepTimeoutRef.current);
