@@ -2,7 +2,14 @@
  * Key/value prefs in the `settings` table (theme, sort, hidden folders, resume).
  * Resume keys are written often while playing - keep values small strings only.
  */
-import { DEFAULT_TRACK_SORT, isTrackSortKey, type TrackSortKey } from '@/lib/library/sort-tracks';
+import {
+  DEFAULT_TRACK_SORT,
+  DEFAULT_TRACK_SORT_DIRECTION,
+  isTrackSortDirection,
+  isTrackSortKey,
+  type TrackSortDirection,
+  type TrackSortKey,
+} from '@/lib/library/sort-tracks';
 
 import type { ThemePreference } from '@/constants/theme';
 import type { SQLiteDatabase } from 'expo-sqlite';
@@ -10,6 +17,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 const SETTINGS_KEYS = {
   themePreference: 'theme_preference',
   trackSort: 'track_sort',
+  trackSortDirection: 'track_sort_direction',
   /** JSON string array of folder_path values excluded from Songs / library lists. */
   hiddenFolderPaths: 'hidden_folder_paths',
   /** Last played MediaStore / track id for cold-start resume. */
@@ -63,6 +71,18 @@ export async function getTrackSort(db: SQLiteDatabase): Promise<TrackSortKey> {
 
 export async function setTrackSort(db: SQLiteDatabase, sortKey: TrackSortKey): Promise<void> {
   await setSetting(db, SETTINGS_KEYS.trackSort, sortKey);
+}
+
+export async function getTrackSortDirection(db: SQLiteDatabase): Promise<TrackSortDirection> {
+  const value = await getSetting(db, SETTINGS_KEYS.trackSortDirection);
+  return isTrackSortDirection(value) ? value : DEFAULT_TRACK_SORT_DIRECTION;
+}
+
+export async function setTrackSortDirection(
+  db: SQLiteDatabase,
+  direction: TrackSortDirection,
+): Promise<void> {
+  await setSetting(db, SETTINGS_KEYS.trackSortDirection, direction);
 }
 
 export async function getHiddenFolderPaths(db: SQLiteDatabase): Promise<string[]> {
