@@ -35,6 +35,8 @@ export default function SongsScreen() {
     filteredTracks,
     sortKey,
     setSortKey,
+    sortDirection,
+    setSortDirection,
     isLoading: tracksLoading,
     refresh,
   } = useLibraryTracks({
@@ -204,7 +206,14 @@ export default function SongsScreen() {
           await refresh();
         })();
       }}
-      headerExtra={<TrackSortControl value={sortKey} onChange={setSortKey} />}
+      headerExtra={
+        <TrackSortControl
+          value={sortKey}
+          direction={sortDirection}
+          onChange={setSortKey}
+          onDirectionChange={setSortDirection}
+        />
+      }
     />
   );
 }
