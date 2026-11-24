@@ -2,8 +2,7 @@
 
 A personal Android music player built with Expo. Muze scans and plays audio stored on the device; it does not copy music into the app.
 
-- See [Features.md](./Features.md) for current status, planned features, and optional future Google Play release steps.
-- See [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) for the detailed architecture and implementation plan.
+- See [Features.md](./Features.md) for features, out-of-scope items, and optional future Google Play release steps.
 
 ## Android home-screen widget
 
@@ -22,7 +21,7 @@ Requirements:
 - Add it from the launcher: long-press home screen → Widgets → **Muze**.
 - Transport taps apply while the Muze process is alive (including background playback); the app pushes live snapshots when the track or play state changes.
 
-Details: [Features.md](./Features.md) (Playback) and [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) §4.7.
+Details: [Features.md](./Features.md) (Playback).
 
 ## Get started
 
