@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+env:
+  HUSKY: 0
+
 jobs:
   lint:
     name: ESLint
@@ -21,7 +24,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Run ESLint
         run: npx expo lint
@@ -40,7 +43,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Check formatting
         run: >-
@@ -63,7 +66,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Type-check
         run: npx tsc --noEmit
@@ -82,7 +85,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Run tests
         run: npm run test:ci
