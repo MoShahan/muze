@@ -105,7 +105,7 @@
             {
               "name": "MuzeNowPlaying",
               "displayName": "Muze",
-              "description": "Now playing controls for Muze",
+              "description": "Album art, track info, and play controls",
               "android": {
                 "minWidth": 250,
                 "minHeight": 110,

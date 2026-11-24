@@ -5,6 +5,25 @@ A personal Android music player built with Expo. Muze scans and plays audio stor
 - See [Features.md](./Features.md) for current status, planned features, and optional future Google Play release steps.
 - See [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) for the detailed architecture and implementation plan.
 
+## Android home-screen widget
+
+Muze ships a **Muze** home-screen widget (`MuzeNowPlaying`) with album art, title/artist, and Prev / Play-Pause / Next controls.
+
+| Piece                                     | Location                                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Layout (`expo-widgets` + Jetpack Compose) | `src/widgets/muze-now-playing.tsx`                                                                     |
+| Playback → widget sync + tap handling     | `src/lib/widgets/muze-now-playing-bridge.ts`, `src/components/player/muze-now-playing-widget-sync.tsx` |
+| Config plugin                             | `expo-widgets` in `app.json` (`enableAndroid: true`)                                                   |
+
+Requirements:
+
+- **Development or release build** — not Expo Go (`expo-widgets` is native).
+- After changing widget config or layout registration, rebuild native (`npx expo run:android` or EAS).
+- Add it from the launcher: long-press home screen → Widgets → **Muze**.
+- Transport taps apply while the Muze process is alive (including background playback); the app pushes live snapshots when the track or play state changes.
+
+Details: [Features.md](./Features.md) (Playback) and [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) §4.7.
+
 ## Get started
 
 1. Install dependencies

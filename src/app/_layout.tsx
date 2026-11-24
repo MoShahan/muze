@@ -5,13 +5,14 @@ import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { RecentPlayRecorder } from '@/components/collections/recent-play-recorder';
+import { MuzeNowPlayingWidgetSync } from '@/components/player/muze-now-playing-widget-sync';
 import { DatabaseProvider } from '@/store/database-provider';
 import { LibraryScanProvider } from '@/store/library-scan-provider';
 import { LibraryVisibilityProvider } from '@/store/library-visibility-provider';
 import { PlaybackProvider } from '@/store/playback-provider';
 import { ThemeProvider, useTheme } from '@/store/theme-provider';
 
-// Registers the Android home-screen widget stub for the next native build.
+// Registers the Android home-screen widget layout for the next native build.
 import '@/widgets/muze-now-playing';
 
 SplashScreen.preventAutoHideAsync();
@@ -84,6 +85,7 @@ export default function RootLayout() {
               <LibraryScanProvider>
                 <PlaybackProvider>
                   <RecentPlayRecorder />
+                  <MuzeNowPlayingWidgetSync />
                   <RootNavigator />
                 </PlaybackProvider>
               </LibraryScanProvider>

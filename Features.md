@@ -27,7 +27,7 @@ Muze is a personal Android music player built with Expo. It scans and plays audi
 - Shuffle and repeat playback.
 - Reorder tracks in the playback queue.
 - Set a sleep timer.
-- Provide an Android home-screen media widget for quick controls.
+- Provide an Android home-screen media widget (**Muze** / `MuzeNowPlaying`): album art, title/artist, and Prev / Play-Pause / Next. Built with `expo-widgets` (Jetpack Compose layout in `src/widgets/muze-now-playing.tsx`); requires a development or release build (not Expo Go). Long-press the home screen → Widgets → Muze to add it.
 
 ### Personalization and collections
 
