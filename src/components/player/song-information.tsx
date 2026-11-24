@@ -22,10 +22,10 @@ export function SongInformation({
   return (
     <View style={styles.row}>
       <View style={styles.copy}>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
           {title}
         </Text>
-        <Text style={[styles.artist, { color: colors.textSecondary }]} numberOfLines={1}>
+        <Text style={[styles.artist, { color: colors.textSecondary }]} numberOfLines={2}>
           {artist}
         </Text>
       </View>
@@ -49,7 +49,7 @@ export function SongInformation({
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.three,
     paddingHorizontal: Spacing.four,
   },
@@ -67,6 +67,7 @@ const styles = StyleSheet.create({
   heartHit: {
     width: 44,
     height: 44,
+    marginTop: 2,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
