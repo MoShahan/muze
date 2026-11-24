@@ -17,7 +17,7 @@ Muze ships a **Muze** home-screen widget (`MuzeNowPlaying`) with album art, titl
 
 Requirements:
 
-- **Development or release build** — not Expo Go (`expo-widgets` is native).
+- **Development or release build** - not Expo Go (`expo-widgets` is native).
 - After changing widget config or layout registration, rebuild native (`npx expo run:android` or EAS).
 - Add it from the launcher: long-press home screen → Widgets → **Muze**.
 - Transport taps apply while the Muze process is alive (including background playback); the app pushes live snapshots when the track or play state changes.
