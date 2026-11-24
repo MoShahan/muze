@@ -1,5 +1,5 @@
 /**
- * Cached waveform peak bars per track (JSON array of 0–1 floats).
+ * Cached waveform peak bars per track (JSON array of 0-1 floats).
  * Generated once on first open of now-playing; seek UI reads this instead of re-decoding.
  */
 import { sanitizePeaks, WAVEFORM_BAR_COUNT } from '@/lib/waveform/peaks';

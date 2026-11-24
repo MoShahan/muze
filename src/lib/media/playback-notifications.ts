@@ -3,7 +3,7 @@
  *
  * Background playback uses expo-audio's foreground MediaSession service. On
  * Android 13+ the shade notification is hidden unless POST_NOTIFICATIONS is
- * granted — request it once when playback is configured.
+ * granted - request it once when playback is configured.
  */
 import { requestNotificationPermissionsAsync } from 'expo-audio';
 import { Platform } from 'react-native';

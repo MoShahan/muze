@@ -1,6 +1,6 @@
 /**
  * Tag + optional embedded-art parse for scanned audio.
- * Reads only a header window (larger for FLAC art) — never the whole file —
+ * Reads only a header window (larger for FLAC art) - never the whole file -
  * then falls back to filename / Unknown Artist / Unknown Album when tags are missing.
  */
 import { EncodingType, getInfoAsync, readAsStringAsync } from 'expo-file-system/legacy';
@@ -15,7 +15,7 @@ export const UNKNOWN_ALBUM = 'Unknown Album';
 export const TAG_HEADER_MAX_BYTES = 512 * 1024;
 
 /**
- * Larger window for FLAC when detecting METADATA_BLOCK_PICTURE —
+ * Larger window for FLAC when detecting METADATA_BLOCK_PICTURE -
  * embedded art often sits in early blocks but can exceed 512KB.
  */
 export const FLAC_ART_HEADER_MAX_BYTES = 4 * 1024 * 1024;

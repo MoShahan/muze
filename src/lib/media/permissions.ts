@@ -7,7 +7,7 @@ import {
   type PermissionResponse,
 } from 'expo-media-library';
 
-/** Android 13+ granular access: audio only — never photo/video. */
+/** Android 13+ granular access: audio only - never photo/video. */
 export const AUDIO_GRANULAR_PERMISSIONS: GranularPermission[] = ['audio'];
 
 export async function getAudioLibraryPermission(): Promise<PermissionResponse> {

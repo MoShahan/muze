@@ -5,7 +5,7 @@
 import type { PlaybackTrack } from '@/store/playback-provider';
 
 /**
- * Fisher–Yates shuffle of everything except the current track, which stays
+ * Fisher-Yates shuffle of everything except the current track, which stays
  * first so enabling shuffle does not interrupt what is already playing.
  */
 export function shuffleTracksKeepingCurrent(

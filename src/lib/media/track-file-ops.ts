@@ -5,7 +5,7 @@
  *
  * Prefer in-place `File` write/rename when the URI is writable. Otherwise stage
  * bytes → `Asset.create` → delete old asset (user may see a system prompt).
- * Recreate paths return a **new** MediaStore id — callers must update SQLite.
+ * Recreate paths return a **new** MediaStore id - callers must update SQLite.
  */
 import { Directory, File, Paths } from 'expo-file-system';
 import { Asset } from 'expo-media-library';
@@ -42,7 +42,7 @@ export function normalizeFilenameInput(draft: string, previousFilename: string):
   if (extensionOf(trimmed).toLowerCase() === previousExt.toLowerCase()) {
     return trimmed;
   }
-  // User typed a stem only, or a different extension — force original extension.
+  // User typed a stem only, or a different extension - force original extension.
   if (!extensionOf(trimmed)) {
     return `${trimmed}${previousExt}`;
   }
@@ -146,7 +146,7 @@ export async function writeTrackTagsOnDevice(
         },
       };
     } catch {
-      // content:// or permission — recreate via MediaLibrary.
+      // content:// or permission - recreate via MediaLibrary.
     }
 
     const staging = await writeStagingFile(track.filename, patched.bytes);

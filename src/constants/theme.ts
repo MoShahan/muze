@@ -80,7 +80,7 @@ export const Radius = {
   full: 9999,
 } as const;
 
-/** Shared type scale — prefer weight/color for hierarchy over many sizes. */
+/** Shared type scale - prefer weight/color for hierarchy over many sizes. */
 export const Typography = {
   display: {
     fontSize: 28,

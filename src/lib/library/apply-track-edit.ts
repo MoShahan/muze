@@ -34,7 +34,7 @@ export type TrackEditSaveReport = {
  * Updates SQLite only after each device write succeeds.
  *
  * Either step may recreate the MediaStore asset (new `id` / `uri`). Always use
- * `report.trackId` afterward — playlists/favorites follow via `replaceTrackIdentity`.
+ * `report.trackId` afterward - playlists/favorites follow via `replaceTrackIdentity`.
  */
 export async function saveTrackEdits(
   db: SQLiteDatabase,

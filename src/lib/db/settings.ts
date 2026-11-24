@@ -1,6 +1,6 @@
 /**
  * Key/value prefs in the `settings` table (theme, sort, hidden folders, resume).
- * Resume keys are written often while playing — keep values small strings only.
+ * Resume keys are written often while playing - keep values small strings only.
  */
 import { DEFAULT_TRACK_SORT, isTrackSortKey, type TrackSortKey } from '@/lib/library/sort-tracks';
 
@@ -112,7 +112,7 @@ export async function getPlaybackResumeState(
   return { trackId, positionMs };
 }
 
-/** Persist resume — throttled by PlaybackProvider while playing; forced on pause. */
+/** Persist resume - throttled by PlaybackProvider while playing; forced on pause. */
 export async function setPlaybackResumeState(
   db: SQLiteDatabase,
   state: PlaybackResumeState,
