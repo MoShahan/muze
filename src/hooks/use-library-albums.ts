@@ -5,13 +5,15 @@
  * by the in-screen search query.
  */
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { listAlbums, type AlbumRow } from '@/lib/db/albums';
-import { listTracks } from '@/lib/db/tracks';
+import { listVisibleTracks } from '@/lib/db/tracks';
 import { matchesLibraryQuery } from '@/lib/library/filter';
-import { albumsFromTracks, filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
+import { albumsFromTracks } from '@/lib/library/hidden-folders';
 import { useLibraryVisibility } from '@/store/library-visibility-provider';
+
+import type { SQLiteDatabase } from 'expo-sqlite';
 
 type UseLibraryAlbumsOptions = {
   enabled?: boolean;
@@ -20,14 +22,14 @@ type UseLibraryAlbumsOptions = {
 };
 
 async function loadVisibleAlbums(
-  db: Parameters<typeof listTracks>[0],
+  db: SQLiteDatabase,
   hiddenFolderPaths: ReadonlySet<string>,
 ): Promise<AlbumRow[]> {
   if (hiddenFolderPaths.size === 0) {
     return listAlbums(db);
   }
-  const tracks = filterTracksExcludingFolders(await listTracks(db), hiddenFolderPaths);
-  return albumsFromTracks(tracks);
+  // Precomputed albums table includes hidden folders - rebuild counts from visible tracks only.
+  return albumsFromTracks(await listVisibleTracks(db, hiddenFolderPaths));
 }
 
 export function useLibraryAlbums({
@@ -39,20 +41,28 @@ export function useLibraryAlbums({
   const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
   const [albums, setAlbums] = useState<AlbumRow[]>([]);
   const [isLoading, setIsLoading] = useState(enabled);
+  const hasAlbumsRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!enabled) {
       setAlbums([]);
+      hasAlbumsRef.current = false;
       setIsLoading(false);
       return [] as AlbumRow[];
     }
-    setIsLoading(true);
+    const showSpinner = !hasAlbumsRef.current;
+    if (showSpinner) {
+      setIsLoading(true);
+    }
     try {
       const next = await loadVisibleAlbums(db, hiddenFolderPaths);
       setAlbums(next);
+      hasAlbumsRef.current = next.length > 0;
       return next;
     } finally {
-      setIsLoading(false);
+      if (showSpinner) {
+        setIsLoading(false);
+      }
     }
   }, [db, enabled, hiddenFolderPaths]);
 
@@ -65,17 +75,22 @@ export function useLibraryAlbums({
       }
       if (!enabled) {
         setAlbums([]);
+        hasAlbumsRef.current = false;
         setIsLoading(false);
         return;
       }
-      setIsLoading(true);
+      const showSpinner = !hasAlbumsRef.current;
+      if (showSpinner) {
+        setIsLoading(true);
+      }
       try {
         const next = await loadVisibleAlbums(db, hiddenFolderPaths);
         if (!cancelled) {
           setAlbums(next);
+          hasAlbumsRef.current = next.length > 0;
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && showSpinner) {
           setIsLoading(false);
         }
       }

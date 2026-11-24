@@ -1,6 +1,10 @@
 /**
  * Loads cached waveform peaks for the current track, or generates and caches
  * them on first open. Shows a placeholder envelope until real peaks are ready.
+ *
+ * Full-file decode (especially FLAC) is deferred with requestIdleCallback so
+ * opening now-playing stays responsive on large libraries.
+ * (InteractionManager was removed in React Native 0.87+.)
  */
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
@@ -31,6 +35,7 @@ export function useTrackWaveform({
 
   useEffect(() => {
     let cancelled = false;
+    let idleCallbackId: number | null = null;
 
     void (async () => {
       await Promise.resolve();
@@ -61,6 +66,14 @@ export function useTrackWaveform({
           return;
         }
 
+        await new Promise<void>((resolve) => {
+          idleCallbackId = requestIdleCallback(() => resolve());
+        });
+        idleCallbackId = null;
+        if (cancelled) {
+          return;
+        }
+
         const extracted = await extractTrackPeaks(uri);
         if (cancelled) {
           return;
@@ -83,6 +96,9 @@ export function useTrackWaveform({
 
     return () => {
       cancelled = true;
+      if (idleCallbackId != null) {
+        cancelIdleCallback(idleCallbackId);
+      }
     };
   }, [db, trackId, uri]);
 

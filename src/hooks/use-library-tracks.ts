@@ -10,9 +10,8 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getTrackSort, setTrackSort } from '@/lib/db/settings';
-import { listTracks, type CachedTrackRow } from '@/lib/db/tracks';
+import { listVisibleTracks, type CachedTrackRow } from '@/lib/db/tracks';
 import { matchesLibraryQuery } from '@/lib/library/filter';
-import { filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
 import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
 import { useLibraryVisibility } from '@/store/library-visibility-provider';
 
@@ -51,7 +50,7 @@ export function useLibraryTracks({
       setIsLoading(true);
     }
     try {
-      const next = filterTracksExcludingFolders(await listTracks(db), hiddenFolderPaths);
+      const next = await listVisibleTracks(db, hiddenFolderPaths);
       setTracks(next);
       hasTracksRef.current = next.length > 0;
       return next;
@@ -99,7 +98,7 @@ export function useLibraryTracks({
             setSortKeyState(storedSort);
           }
         }
-        const next = filterTracksExcludingFolders(await listTracks(db), hiddenFolderPaths);
+        const next = await listVisibleTracks(db, hiddenFolderPaths);
         if (!cancelled) {
           setTracks(next);
           hasTracksRef.current = next.length > 0;

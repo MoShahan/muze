@@ -5,13 +5,15 @@
  * by the in-screen search query.
  */
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { listArtists, type ArtistRow } from '@/lib/db/artists';
-import { listTracks } from '@/lib/db/tracks';
+import { listVisibleTracks } from '@/lib/db/tracks';
 import { matchesLibraryQuery } from '@/lib/library/filter';
-import { artistsFromTracks, filterTracksExcludingFolders } from '@/lib/library/hidden-folders';
+import { artistsFromTracks } from '@/lib/library/hidden-folders';
 import { useLibraryVisibility } from '@/store/library-visibility-provider';
+
+import type { SQLiteDatabase } from 'expo-sqlite';
 
 type UseLibraryArtistsOptions = {
   enabled?: boolean;
@@ -20,14 +22,13 @@ type UseLibraryArtistsOptions = {
 };
 
 async function loadVisibleArtists(
-  db: Parameters<typeof listTracks>[0],
+  db: SQLiteDatabase,
   hiddenFolderPaths: ReadonlySet<string>,
 ): Promise<ArtistRow[]> {
   if (hiddenFolderPaths.size === 0) {
     return listArtists(db);
   }
-  const tracks = filterTracksExcludingFolders(await listTracks(db), hiddenFolderPaths);
-  return artistsFromTracks(tracks);
+  return artistsFromTracks(await listVisibleTracks(db, hiddenFolderPaths));
 }
 
 export function useLibraryArtists({
@@ -39,20 +40,28 @@ export function useLibraryArtists({
   const { hiddenFolderPaths, revision: visibilityRevision } = useLibraryVisibility();
   const [artists, setArtists] = useState<ArtistRow[]>([]);
   const [isLoading, setIsLoading] = useState(enabled);
+  const hasArtistsRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!enabled) {
       setArtists([]);
+      hasArtistsRef.current = false;
       setIsLoading(false);
       return [] as ArtistRow[];
     }
-    setIsLoading(true);
+    const showSpinner = !hasArtistsRef.current;
+    if (showSpinner) {
+      setIsLoading(true);
+    }
     try {
       const next = await loadVisibleArtists(db, hiddenFolderPaths);
       setArtists(next);
+      hasArtistsRef.current = next.length > 0;
       return next;
     } finally {
-      setIsLoading(false);
+      if (showSpinner) {
+        setIsLoading(false);
+      }
     }
   }, [db, enabled, hiddenFolderPaths]);
 
@@ -65,17 +74,22 @@ export function useLibraryArtists({
       }
       if (!enabled) {
         setArtists([]);
+        hasArtistsRef.current = false;
         setIsLoading(false);
         return;
       }
-      setIsLoading(true);
+      const showSpinner = !hasArtistsRef.current;
+      if (showSpinner) {
+        setIsLoading(true);
+      }
       try {
         const next = await loadVisibleArtists(db, hiddenFolderPaths);
         if (!cancelled) {
           setArtists(next);
+          hasArtistsRef.current = next.length > 0;
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && showSpinner) {
           setIsLoading(false);
         }
       }

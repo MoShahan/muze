@@ -28,6 +28,8 @@ function isAbortError(error: unknown): boolean {
 }
 
 const EMPTY_COUNTS: LibraryCounts = { tracks: 0, albums: 0, artists: 0 };
+/** Avoid reloading Songs/Albums/Artists on every 50-track batch during a long scan. */
+const LIBRARY_REVISION_THROTTLE_MS = 750;
 
 export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
   const db = useSQLiteContext();
@@ -44,10 +46,20 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
+  const lastRevisionBumpAtRef = useRef(0);
 
   useEffect(() => {
     dbRef.current = db;
   }, [db]);
+
+  const bumpLibraryRevision = useCallback((force = false) => {
+    const now = Date.now();
+    if (!force && now - lastRevisionBumpAtRef.current < LIBRARY_REVISION_THROTTLE_MS) {
+      return;
+    }
+    lastRevisionBumpAtRef.current = now;
+    setLibraryRevision((value) => value + 1);
+  }, []);
 
   const runScan = useCallback(async () => {
     abortRef.current?.abort();
@@ -69,8 +81,9 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
     setReparsedCount(0);
     setBatchIndex(0);
     setErrorMessage(null);
+    lastRevisionBumpAtRef.current = 0;
 
-    // Ids observed this walk — finalize prunes SQLite rows that disappeared from MediaStore.
+    // Ids observed this walk - finalize prunes SQLite rows that disappeared from MediaStore.
     const seenIds = new Set<string>();
 
     try {
@@ -89,8 +102,8 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
           setCacheHitCount(progress.cacheHitCount);
           setReparsedCount(progress.reparsedCount);
           setBatchIndex(progress.batchIndex);
-          // Show songs as soon as each batch is upserted — do not wait for the full scan.
-          setLibraryRevision((value) => value + 1);
+          // Throttled so ~1000-track scans do not reload every list 20×.
+          bumpLibraryRevision(progress.done);
         },
       });
 
@@ -108,7 +121,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       setReparsedCount(finalProgress.reparsedCount);
       setBatchIndex(finalProgress.batchIndex);
       setLibraryCounts(counts);
-      setLibraryRevision((value) => value + 1);
+      bumpLibraryRevision(true);
       setStatus('ready');
       return { ...finalProgress, libraryCounts: counts };
     } catch (error) {
@@ -124,7 +137,7 @@ export function useAudioLibraryScan({ enabled }: UseAudioLibraryScanOptions) {
       setStatus('error');
       return null;
     }
-  }, []);
+  }, [bumpLibraryRevision]);
 
   useEffect(() => {
     if (!enabled) {
