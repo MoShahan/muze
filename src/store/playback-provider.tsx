@@ -57,6 +57,8 @@ type PlaybackContextValue = {
   repeat: RepeatMode;
   shuffle: boolean;
   playMode: PlayMode;
+  /** Epoch ms when the sleep timer should pause playback; null when off. */
+  sleepTimerEndsAt: number | null;
   playTrack: (track: PlaybackTrack) => void;
   setCurrentTrack: (track: PlaybackTrack | null) => void;
   setQueue: (tracks: PlaybackTrack[], startIndex?: number) => void;
@@ -70,6 +72,9 @@ type PlaybackContextValue = {
   setShuffle: (shuffle: boolean) => void;
   setPlayMode: (mode: PlayMode) => void;
   cyclePlayMode: () => void;
+  /** Start a sleep timer for `durationMs`, or pass null / 0 to cancel. */
+  setSleepTimer: (durationMs: number | null) => void;
+  clearSleepTimer: () => void;
 };
 
 const PlaybackContext = createContext<PlaybackContextValue | null>(null);
@@ -125,6 +130,7 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   const [queueIndex, setQueueIndex] = useState(0);
   const [repeat, setRepeatState] = useState<RepeatMode>('all');
   const [shuffle, setShuffleState] = useState(false);
+  const [sleepTimerEndsAt, setSleepTimerEndsAt] = useState<number | null>(null);
 
   const queueRef = useRef(queue);
   const queueIndexRef = useRef(queueIndex);
@@ -136,6 +142,8 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   const pendingResumeSeekMsRef = useRef<number | null>(null);
   const lastPersistedAtRef = useRef(0);
   const currentTrackIdRef = useRef<string | null>(null);
+  const sleepTimerEndsAtRef = useRef<number | null>(null);
+  const sleepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playMode = playModeFromFlags(shuffle, repeat);
 
@@ -383,6 +391,59 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     setPlayMode(next);
   }, [playMode, setPlayMode]);
 
+  const clearSleepTimeoutOnly = useCallback(() => {
+    if (sleepTimeoutRef.current != null) {
+      clearTimeout(sleepTimeoutRef.current);
+      sleepTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearSleepTimer = useCallback(() => {
+    clearSleepTimeoutOnly();
+    sleepTimerEndsAtRef.current = null;
+    setSleepTimerEndsAt(null);
+  }, [clearSleepTimeoutOnly]);
+
+  const fireSleepTimer = useCallback(() => {
+    clearSleepTimeoutOnly();
+    sleepTimerEndsAtRef.current = null;
+    setSleepTimerEndsAt(null);
+    player.pause();
+    void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
+  }, [clearSleepTimeoutOnly, persistResumeState, player]);
+
+  const scheduleSleepTimeout = useCallback(() => {
+    clearSleepTimeoutOnly();
+    const endsAt = sleepTimerEndsAtRef.current;
+    if (endsAt == null) {
+      return;
+    }
+    const delay = Math.max(0, endsAt - Date.now());
+    sleepTimeoutRef.current = setTimeout(() => {
+      fireSleepTimer();
+    }, delay);
+  }, [clearSleepTimeoutOnly, fireSleepTimer]);
+
+  const setSleepTimer = useCallback(
+    (durationMs: number | null) => {
+      if (durationMs == null || durationMs <= 0) {
+        clearSleepTimer();
+        return;
+      }
+      const endsAt = Date.now() + durationMs;
+      sleepTimerEndsAtRef.current = endsAt;
+      setSleepTimerEndsAt(endsAt);
+      scheduleSleepTimeout();
+    },
+    [clearSleepTimer, scheduleSleepTimeout],
+  );
+
+  useEffect(() => {
+    return () => {
+      clearSleepTimeoutOnly();
+    };
+  }, [clearSleepTimeoutOnly]);
+
   // Advance or replay when a track finishes.
   useEffect(() => {
     if (!status.didJustFinish) {
@@ -481,17 +542,27 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     void persistResumeState(currentTrack.id, positionMs, !isPlaying);
   }, [currentTrack, isPlaying, persistResumeState, positionMs]);
 
-  // Flush on background / inactive so a kill still restores the right spot.
+  // Flush resume on background; catch up sleep timer when returning to foreground
+  // (JS timers can be delayed while suspended).
   useEffect(() => {
     const onChange = (next: AppStateStatus) => {
       if (next === 'active') {
+        const endsAt = sleepTimerEndsAtRef.current;
+        if (endsAt == null) {
+          return;
+        }
+        if (Date.now() >= endsAt) {
+          fireSleepTimer();
+          return;
+        }
+        scheduleSleepTimeout();
         return;
       }
       void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
     };
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
-  }, [persistResumeState]);
+  }, [fireSleepTimer, persistResumeState, scheduleSleepTimeout]);
 
   const durationMs = Math.round(
     status.duration && status.duration > 0
@@ -509,6 +580,7 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     repeat,
     shuffle,
     playMode,
+    sleepTimerEndsAt,
     playTrack,
     setCurrentTrack,
     setQueue,
@@ -522,6 +594,8 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     setShuffle,
     setPlayMode,
     cyclePlayMode,
+    setSleepTimer,
+    clearSleepTimer,
   };
 
   return <PlaybackContext.Provider value={value}>{children}</PlaybackContext.Provider>;
