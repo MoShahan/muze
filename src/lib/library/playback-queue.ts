@@ -50,3 +50,20 @@ export function previousQueueIndex(
   }
   return options.wrap ? queueLength - 1 : null;
 }
+
+/** Move one queue item to a new index; returns a new array. */
+export function moveQueueItem<T>(items: readonly T[], fromIndex: number, toIndex: number): T[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= items.length ||
+    toIndex >= items.length
+  ) {
+    return [...items];
+  }
+  const next = [...items];
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item);
+  return next;
+}

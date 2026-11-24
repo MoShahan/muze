@@ -38,6 +38,14 @@ function RootNavigator() {
           gestureEnabled: true,
         }}
       />
+      <Stack.Screen
+        name="queue"
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+        }}
+      />
       <Stack.Screen name="folders" />
       <Stack.Screen name="library-folders" />
       <Stack.Screen name="favorites" />

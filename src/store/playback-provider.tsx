@@ -31,7 +31,7 @@ import {
   setPlaybackResumeState,
 } from '@/lib/db/settings';
 import { artworkDisplayUri, getTrackById, type CachedTrackRow } from '@/lib/db/tracks';
-import { shuffleTracksKeepingCurrent } from '@/lib/library/playback-queue';
+import { moveQueueItem, shuffleTracksKeepingCurrent } from '@/lib/library/playback-queue';
 import { ensurePlaybackNotificationPermission } from '@/lib/media/playback-notifications';
 
 export type RepeatMode = 'off' | 'all' | 'one';
@@ -65,6 +65,12 @@ type PlaybackContextValue = {
   playTrack: (track: PlaybackTrack) => void;
   setCurrentTrack: (track: PlaybackTrack | null) => void;
   setQueue: (tracks: PlaybackTrack[], startIndex?: number) => void;
+  /** Reorder the in-memory + native queue; keeps the current track playing. */
+  reorderQueue: (fromIndex: number, toIndex: number) => void;
+  /** Remove an upcoming (non-current) track from the queue. */
+  removeFromQueue: (index: number) => void;
+  /** Jump to a queue index and play it. */
+  playQueueIndex: (index: number) => void;
   setIsPlaying: (playing: boolean) => void;
   togglePlayPause: () => void;
   playNext: () => void;
@@ -361,6 +367,85 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     queueRef.current = tracks;
     queueIndexRef.current = safeIndex;
   }, []);
+
+  const reorderQueue = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      const tracks = queueRef.current;
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= tracks.length ||
+        toIndex >= tracks.length
+      ) {
+        return;
+      }
+      const next = moveQueueItem(tracks, fromIndex, toIndex);
+      const currentId = currentTrackIdRef.current;
+      const newIndex =
+        currentId != null
+          ? Math.max(
+              0,
+              next.findIndex((track) => track.id === currentId),
+            )
+          : 0;
+      const wasPlaying = playlistRef.current.playing;
+      setQueueState(next);
+      queueRef.current = next;
+      if (!shuffleRef.current) {
+        setOriginalQueue(next);
+      }
+      setQueueIndex(newIndex);
+      queueIndexRef.current = newIndex;
+      syncNativePlaylist(next, newIndex);
+      if (wasPlaying) {
+        playlistRef.current.play();
+      }
+    },
+    [syncNativePlaylist],
+  );
+
+  const removeFromQueue = useCallback(
+    (index: number) => {
+      const tracks = queueRef.current;
+      if (index < 0 || index >= tracks.length || index === queueIndexRef.current) {
+        return;
+      }
+      const next = tracks.filter((_, itemIndex) => itemIndex !== index);
+      const currentId = currentTrackIdRef.current;
+      const newIndex =
+        currentId != null
+          ? Math.max(
+              0,
+              next.findIndex((track) => track.id === currentId),
+            )
+          : 0;
+      const wasPlaying = playlistRef.current.playing;
+      setQueueState(next);
+      queueRef.current = next;
+      if (!shuffleRef.current) {
+        setOriginalQueue(next);
+      }
+      setQueueIndex(newIndex);
+      queueIndexRef.current = newIndex;
+      syncNativePlaylist(next, newIndex);
+      if (wasPlaying) {
+        playlistRef.current.play();
+      }
+    },
+    [syncNativePlaylist],
+  );
+
+  const playQueueIndex = useCallback(
+    (index: number) => {
+      const track = queueRef.current[index];
+      if (!track) {
+        return;
+      }
+      loadAndPlay(track, index);
+    },
+    [loadAndPlay],
+  );
 
   const setIsPlaying = useCallback(
     (playing: boolean) => {
@@ -710,6 +795,9 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     playTrack,
     setCurrentTrack,
     setQueue,
+    reorderQueue,
+    removeFromQueue,
+    playQueueIndex,
     setIsPlaying,
     togglePlayPause,
     playNext,
