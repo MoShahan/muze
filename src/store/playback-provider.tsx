@@ -1,12 +1,17 @@
 /**
- * App-wide playback shell backed by expo-audio.
+ * App-wide playback shell backed by expo-audio's AudioPlaylist.
  *
- * Owns one AudioPlayer, the current track, and an in-memory queue of full
- * PlaybackTrack rows (uri included) so next / previous / shuffle / repeat can
- * advance without SQLite lookups. Also persists last track + position for
- * cold-start resume into the mini-player (paused at the saved timestamp).
+ * Uses a playlist (not a single AudioPlayer) so Android/iOS media-session
+ * next/previous actions from headsets, Bluetooth, and the lock-screen
+ * notification can advance the queue. JS still owns shuffle/repeat policy,
+ * resume persistence, and sleep timer.
  */
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import {
+  setAudioModeAsync,
+  useAudioPlaylist,
+  useAudioPlaylistStatus,
+  type AudioPlaylistLoopMode,
+} from 'expo-audio';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
   createContext,
@@ -25,11 +30,7 @@ import {
   setPlaybackResumeState,
 } from '@/lib/db/settings';
 import { getTrackById, type CachedTrackRow } from '@/lib/db/tracks';
-import {
-  nextQueueIndex,
-  previousQueueIndex,
-  shuffleTracksKeepingCurrent,
-} from '@/lib/library/playback-queue';
+import { shuffleTracksKeepingCurrent } from '@/lib/library/playback-queue';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
@@ -84,6 +85,13 @@ const PREVIOUS_RESTART_THRESHOLD_MS = 3000;
 /** How often to flush position while playing (ms). */
 const RESUME_PERSIST_INTERVAL_MS = 2000;
 
+const LOCK_SCREEN_OPTIONS = {
+  showNextTrack: true,
+  showPreviousTrack: true,
+  showSeekForward: false,
+  showSeekBackward: false,
+} as const;
+
 function toArtworkUrl(uri: string | null | undefined): string | undefined {
   if (!uri) {
     return undefined;
@@ -116,13 +124,33 @@ function trackRowToPlayback(row: CachedTrackRow): PlaybackTrack {
   };
 }
 
+/** Map Muze repeat/shuffle into expo-audio playlist loop mode. */
+function toPlaylistLoop(repeat: RepeatMode, shuffle: boolean): AudioPlaylistLoopMode {
+  if (repeat === 'one') {
+    return 'single';
+  }
+  if (repeat === 'off' && !shuffle) {
+    return 'none';
+  }
+  return 'all';
+}
+
+function queueSignature(tracks: readonly PlaybackTrack[]): string {
+  return tracks.map((track) => track.id).join('\0');
+}
+
 export function PlaybackProvider({ children }: PropsWithChildren) {
   const db = useSQLiteContext();
-  const player = useAudioPlayer(null, {
+  // Empty initial sources — queue is pushed via clear/add so loop changes do not recreate the playlist.
+  const playlist = useAudioPlaylist({
+    sources: [],
     updateInterval: 250,
-    keepAudioSessionActive: true,
+    loop: 'all',
   });
-  const status = useAudioPlayerStatus(player);
+  const status = useAudioPlaylistStatus(playlist);
+  // Ref so imperative playlist mutations (loop / queue sync) are not flagged as
+  // modifying the hook return value during render.
+  const playlistRef = useRef(playlist);
 
   const [currentTrack, setCurrentTrackState] = useState<PlaybackTrack | null>(null);
   const [queue, setQueueState] = useState<PlaybackTrack[]>([]);
@@ -137,15 +165,19 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   const repeatRef = useRef(repeat);
   const shuffleRef = useRef(shuffle);
   const positionMsRef = useRef(0);
-  const handlingFinishRef = useRef(false);
   const resumeReadyRef = useRef(false);
   const pendingResumeSeekMsRef = useRef<number | null>(null);
   const lastPersistedAtRef = useRef(0);
   const currentTrackIdRef = useRef<string | null>(null);
   const sleepTimerEndsAtRef = useRef<number | null>(null);
   const sleepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nativeQueueSignatureRef = useRef('');
 
   const playMode = playModeFromFlags(shuffle, repeat);
+
+  useEffect(() => {
+    playlistRef.current = playlist;
+  }, [playlist]);
 
   useEffect(() => {
     queueRef.current = queue;
@@ -198,20 +230,79 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     [db],
   );
 
-  const applyLockScreen = useCallback(
+  const applyLockScreen = useCallback((track: PlaybackTrack) => {
+    try {
+      playlistRef.current.setActiveForLockScreen(
+        true,
+        {
+          title: track.title,
+          artist: track.artist,
+          albumTitle: track.album,
+          artworkUrl: toArtworkUrl(track.artworkUri),
+        },
+        LOCK_SCREEN_OPTIONS,
+      );
+    } catch {
+      // Lock screen metadata is best-effort until notification polish lands.
+    }
+  }, []);
+
+  const updateLockScreen = useCallback(
     (track: PlaybackTrack) => {
       try {
-        player.setActiveForLockScreen(true, {
+        playlistRef.current.updateLockScreenMetadata({
           title: track.title,
           artist: track.artist,
           albumTitle: track.album,
           artworkUrl: toArtworkUrl(track.artworkUri),
         });
       } catch {
-        // Lock screen metadata is best-effort on this milestone.
+        applyLockScreen(track);
       }
     },
-    [player],
+    [applyLockScreen],
+  );
+
+  const applyPlaylistLoop = useCallback(() => {
+    playlistRef.current.loop = toPlaylistLoop(repeatRef.current, shuffleRef.current);
+  }, []);
+
+  /** Push the JS queue into the native playlist when the id order changes. */
+  const syncNativePlaylist = useCallback(
+    (tracks: PlaybackTrack[], startIndex: number) => {
+      const active = playlistRef.current;
+      const signature = queueSignature(tracks);
+      if (signature !== nativeQueueSignatureRef.current) {
+        active.clear();
+        for (const track of tracks) {
+          if (track.uri) {
+            active.add({ uri: track.uri });
+          }
+        }
+        nativeQueueSignatureRef.current = signature;
+      }
+      applyPlaylistLoop();
+      const safeIndex = Math.min(Math.max(0, startIndex), Math.max(0, tracks.length - 1));
+      if (tracks.length > 0 && active.currentIndex !== safeIndex) {
+        active.skipTo(safeIndex);
+      }
+    },
+    [applyPlaylistLoop],
+  );
+
+  const selectTrackAtIndex = useCallback(
+    (index: number, options?: { persistPositionMs?: number }) => {
+      const track = queueRef.current[index];
+      if (!track) {
+        return;
+      }
+      setCurrentTrackState(track);
+      setQueueIndex(index);
+      queueIndexRef.current = index;
+      updateLockScreen(track);
+      void persistResumeState(track.id, options?.persistPositionMs ?? 0, true);
+    },
+    [persistResumeState, updateLockScreen],
   );
 
   const loadAndPlay = useCallback(
@@ -223,12 +314,12 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
       if (!track.uri) {
         return;
       }
-      player.replace({ uri: track.uri });
-      player.play();
+      syncNativePlaylist(queueRef.current, index);
+      playlistRef.current.play();
       applyLockScreen(track);
       void persistResumeState(track.id, 0, true);
     },
-    [applyLockScreen, persistResumeState, player],
+    [applyLockScreen, persistResumeState, syncNativePlaylist],
   );
 
   const playTrack = useCallback(
@@ -252,6 +343,13 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
       setCurrentTrackState(track);
       if (!track) {
         pendingResumeSeekMsRef.current = null;
+        nativeQueueSignatureRef.current = '';
+        try {
+          playlistRef.current.clear();
+          playlistRef.current.clearLockScreenControls();
+        } catch {
+          // Best-effort teardown when the current track is deleted.
+        }
         void persistResumeState(null, 0, true);
       }
     },
@@ -270,61 +368,50 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
   const setIsPlaying = useCallback(
     (playing: boolean) => {
       if (playing) {
-        player.play();
+        playlistRef.current.play();
       } else {
-        player.pause();
+        playlistRef.current.pause();
         void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
       }
     },
-    [persistResumeState, player],
+    [persistResumeState],
   );
 
   const togglePlayPause = useCallback(() => {
     if (status.playing) {
-      player.pause();
+      playlistRef.current.pause();
       void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
     } else {
-      player.play();
+      playlistRef.current.play();
     }
-  }, [persistResumeState, player, status.playing]);
+  }, [persistResumeState, status.playing]);
 
   const playNext = useCallback(() => {
-    const tracks = queueRef.current;
-    const index = queueIndexRef.current;
-    const wrap = repeatRef.current === 'all' || shuffleRef.current;
-    const nextIndex = nextQueueIndex(tracks.length, index, { wrap });
-    if (nextIndex == null) {
-      player.pause();
-      void player.seekTo(0);
+    applyPlaylistLoop();
+    const active = playlistRef.current;
+    if (repeatRef.current === 'one') {
+      void active.seekTo(0);
+      active.play();
       return;
     }
-    loadAndPlay(tracks[nextIndex], nextIndex);
-  }, [loadAndPlay, player]);
+    // Native next also handles headset / Bluetooth / lock-screen skip.
+    active.next();
+  }, [applyPlaylistLoop]);
 
   const playPrevious = useCallback(() => {
+    const active = playlistRef.current;
     if (positionMsRef.current > PREVIOUS_RESTART_THRESHOLD_MS) {
-      void player.seekTo(0);
-      player.play();
+      void active.seekTo(0);
+      active.play();
       return;
     }
-    const tracks = queueRef.current;
-    const index = queueIndexRef.current;
-    const wrap = repeatRef.current === 'all' || shuffleRef.current;
-    const prevIndex = previousQueueIndex(tracks.length, index, { wrap });
-    if (prevIndex == null) {
-      void player.seekTo(0);
-      player.play();
-      return;
-    }
-    loadAndPlay(tracks[prevIndex], prevIndex);
-  }, [loadAndPlay, player]);
+    applyPlaylistLoop();
+    active.previous();
+  }, [applyPlaylistLoop]);
 
-  const seekToMs = useCallback(
-    (positionMs: number) => {
-      void player.seekTo(Math.max(0, positionMs) / 1000);
-    },
-    [player],
-  );
+  const seekToMs = useCallback((positionMs: number) => {
+    void playlistRef.current.seekTo(Math.max(0, positionMs) / 1000);
+  }, []);
 
   const setPositionMs = useCallback(
     (positionMs: number) => {
@@ -333,16 +420,22 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     [seekToMs],
   );
 
-  const setRepeat = useCallback((next: RepeatMode) => {
-    setRepeatState(next);
-    repeatRef.current = next;
-  }, []);
+  const setRepeat = useCallback(
+    (next: RepeatMode) => {
+      setRepeatState(next);
+      repeatRef.current = next;
+      applyPlaylistLoop();
+    },
+    [applyPlaylistLoop],
+  );
 
   const setShuffle = useCallback(
     (enabled: boolean) => {
       setShuffleState(enabled);
       shuffleRef.current = enabled;
       const currentId = queueRef.current[queueIndexRef.current]?.id ?? null;
+      const active = playlistRef.current;
+      const wasPlaying = active.playing;
       if (enabled) {
         const source = originalQueue.length > 0 ? originalQueue : queueRef.current;
         const shuffled = shuffleTracksKeepingCurrent(source, currentId);
@@ -350,6 +443,11 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
         queueRef.current = shuffled;
         setQueueIndex(0);
         queueIndexRef.current = 0;
+        syncNativePlaylist(shuffled, 0);
+        if (wasPlaying) {
+          active.play();
+        }
+        applyPlaylistLoop();
         return;
       }
       const restored = originalQueue.length > 0 ? originalQueue : queueRef.current;
@@ -363,8 +461,13 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
       queueRef.current = restored;
       setQueueIndex(restoredIndex);
       queueIndexRef.current = restoredIndex;
+      syncNativePlaylist(restored, restoredIndex);
+      if (wasPlaying) {
+        active.play();
+      }
+      applyPlaylistLoop();
     },
-    [originalQueue],
+    [applyPlaylistLoop, originalQueue, syncNativePlaylist],
   );
 
   const setPlayMode = useCallback(
@@ -408,9 +511,9 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     clearSleepTimeoutOnly();
     sleepTimerEndsAtRef.current = null;
     setSleepTimerEndsAt(null);
-    player.pause();
+    playlistRef.current.pause();
     void persistResumeState(currentTrackIdRef.current, positionMsRef.current, true);
-  }, [clearSleepTimeoutOnly, persistResumeState, player]);
+  }, [clearSleepTimeoutOnly, persistResumeState]);
 
   const scheduleSleepTimeout = useCallback(() => {
     clearSleepTimeoutOnly();
@@ -444,23 +547,36 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     };
   }, [clearSleepTimeoutOnly]);
 
-  // Advance or replay when a track finishes.
+  // Keep React queue index / metadata in sync when native next/previous fires
+  // (headset, Bluetooth, lock screen, or playlist.next/previous).
   useEffect(() => {
-    if (!status.didJustFinish) {
-      handlingFinishRef.current = false;
+    const subscription = playlistRef.current.addListener(
+      'trackChanged',
+      ({ currentIndex }: { currentIndex: number; previousIndex: number }) => {
+        if (currentIndex === queueIndexRef.current) {
+          return;
+        }
+        selectTrackAtIndex(currentIndex);
+      },
+    );
+    return () => {
+      subscription.remove();
+    };
+  }, [playlist, selectTrackAtIndex]);
+
+  // Fallback sync if status reports a new index without an event (platform gaps).
+  useEffect(() => {
+    if (!resumeReadyRef.current) {
       return;
     }
-    if (handlingFinishRef.current) {
+    if (status.currentIndex === queueIndexRef.current) {
       return;
     }
-    handlingFinishRef.current = true;
-    if (repeatRef.current === 'one') {
-      void player.seekTo(0);
-      player.play();
+    if (status.currentIndex < 0 || status.currentIndex >= queueRef.current.length) {
       return;
     }
-    playNext();
-  }, [status.didJustFinish, playNext, player]);
+    selectTrackAtIndex(status.currentIndex);
+  }, [selectTrackAtIndex, status.currentIndex]);
 
   // Cold start: restore last track into mini-player, paused at saved position.
   useEffect(() => {
@@ -506,8 +622,8 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
       pendingResumeSeekMsRef.current = seekMs;
       positionMsRef.current = seekMs;
 
-      player.replace({ uri: track.uri });
-      player.pause();
+      syncNativePlaylist([track], 0);
+      playlistRef.current.pause();
       applyLockScreen(track);
       resumeReadyRef.current = true;
     })();
@@ -515,7 +631,7 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [applyLockScreen, db, player]);
+  }, [applyLockScreen, db, syncNativePlaylist]);
 
   // Apply deferred seek once the restored source is loaded; stay paused.
   useEffect(() => {
@@ -524,9 +640,9 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
       return;
     }
     pendingResumeSeekMsRef.current = null;
-    void player.seekTo(seekMs / 1000);
-    player.pause();
-  }, [player, status.isLoaded]);
+    void playlistRef.current.seekTo(seekMs / 1000);
+    playlistRef.current.pause();
+  }, [status.isLoaded]);
 
   const isPlaying = status.playing;
   const positionMs = Math.round((status.currentTime ?? 0) * 1000);
