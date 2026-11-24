@@ -1,3 +1,5 @@
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { type Href, router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
@@ -12,6 +14,7 @@ import { WaveformSeekbar } from '@/components/player/waveform-seekbar';
 import { Spacing } from '@/constants/theme';
 import { useTrackWaveform } from '@/hooks/use-track-waveform';
 import { isFavorite, toggleFavorite } from '@/lib/db/favorites';
+import { artworkDisplayUri } from '@/lib/db/tracks';
 import { usePlayback } from '@/store/playback-provider';
 import { useTheme } from '@/store/theme-provider';
 
@@ -37,6 +40,7 @@ export default function PlayerScreen() {
     trackId: currentTrack?.id,
     uri: currentTrack?.uri,
   });
+  const artUri = artworkDisplayUri(currentTrack?.artworkUri);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,49 +87,76 @@ export default function PlayerScreen() {
   }, [positionMs, trackDurationMs]);
 
   return (
-    <View
-      style={[
-        styles.screen,
-        {
-          backgroundColor: colors.canvas,
-          paddingTop: insets.top,
-          paddingBottom: Math.max(insets.bottom, Spacing.two),
-        },
-      ]}
-    >
-      <PlayerHeader trackId={currentTrack?.id} />
+    <View style={[styles.screen, { backgroundColor: colors.canvas }]}>
+      {artUri ? (
+        <>
+          <Image
+            source={{ uri: artUri }}
+            style={styles.backdropArt}
+            contentFit="cover"
+            blurRadius={48}
+            recyclingKey={`player-bg-${artUri}`}
+            transition={200}
+          />
+          <View pointerEvents="none" style={styles.glassTint} />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0.12)', 'transparent']}
+            locations={[0, 0.4, 1]}
+            style={styles.topScrim}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.55)']}
+            locations={[0, 0.45, 1]}
+            style={styles.bottomScrim}
+            pointerEvents="none"
+          />
+        </>
+      ) : null}
 
-      <View style={styles.vinylBlock}>
-        <VinylRecord isPlaying={isPlaying} artworkUri={currentTrack?.artworkUri} />
-      </View>
+      <View
+        style={[
+          styles.foreground,
+          {
+            paddingTop: insets.top,
+            paddingBottom: Math.max(insets.bottom, Spacing.two),
+          },
+        ]}
+      >
+        <PlayerHeader trackId={currentTrack?.id} />
 
-      <View style={styles.lower}>
-        <SongInformation
-          title={title}
-          artist={artist}
-          favorited={favorited}
-          onToggleFavorite={onToggleFavorite}
-        />
+        <View style={styles.vinylBlock}>
+          <VinylRecord isPlaying={isPlaying} artworkUri={currentTrack?.artworkUri} />
+        </View>
 
-        <WaveformSeekbar
-          peaks={peaks}
-          progress={progress}
-          durationMs={trackDurationMs}
-          isPlaceholder={isPlaceholder}
-          onSeek={(nextProgress) => {
-            seekToMs(nextProgress * trackDurationMs);
-          }}
-        />
+        <View style={styles.lower}>
+          <SongInformation
+            title={title}
+            artist={artist}
+            favorited={favorited}
+            onToggleFavorite={onToggleFavorite}
+          />
 
-        <PlaybackControls
-          isPlaying={isPlaying}
-          playMode={playMode}
-          onTogglePlay={togglePlayPause}
-          onPrevious={playPrevious}
-          onNext={playNext}
-          onCyclePlayMode={cyclePlayMode}
-          onOpenQueue={() => router.push('/queue' as Href)}
-        />
+          <WaveformSeekbar
+            peaks={peaks}
+            progress={progress}
+            durationMs={trackDurationMs}
+            isPlaceholder={isPlaceholder}
+            onSeek={(nextProgress) => {
+              seekToMs(nextProgress * trackDurationMs);
+            }}
+          />
+
+          <PlaybackControls
+            isPlaying={isPlaying}
+            playMode={playMode}
+            onTogglePlay={togglePlayPause}
+            onPrevious={playPrevious}
+            onNext={playNext}
+            onCyclePlayMode={cyclePlayMode}
+            onOpenQueue={() => router.push('/queue' as Href)}
+          />
+        </View>
       </View>
     </View>
   );
@@ -134,18 +165,39 @@ export default function PlayerScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    justifyContent: 'flex-start',
+  },
+  backdropArt: {
+    ...StyleSheet.absoluteFill,
+    transform: [{ scale: 1.12 }],
+  },
+  glassTint: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.62)',
+  },
+  topScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '28%',
+  },
+  bottomScrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '32%',
+  },
+  foreground: {
+    flex: 1,
     gap: Spacing.two,
   },
   vinylBlock: {
+    flex: 1,
     alignItems: 'center',
-    marginTop: Spacing.one,
-    marginBottom: Spacing.one,
-    height: 500,
-    paddingTop: Spacing.six,
+    justifyContent: 'center',
   },
   lower: {
     gap: Spacing.three,
-    paddingBottom: Spacing.one,
   },
 });
