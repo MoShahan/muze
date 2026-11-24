@@ -11,10 +11,10 @@ Muze is a personal Android music player built with Expo. It scans and plays audi
 - Both filename rename and metadata edit are supported and independent.
 - Delete audio files after confirmation and required Android system approval.
 - Sort track lists by title, artist, date added, or duration.
-- Search in place on each list screen (top search filters that page’s content only—e.g. Albums searches albums). No separate global search page.
+- Search in place on each list screen (top search filters that page’s content only-e.g. Albums searches albums). No separate global search page.
 - Rescan the library and keep local metadata current.
 - Album detail uses a large full-bleed album-art hero with icon-only Play / Shuffle / Sort over a light scrim (title/artist overlaid; sort opens a menu; track list below). Artists list and artist detail show the artist name only (no artist image; tags only provide album art).
-- Play / Pause / Shuffle (and similar transport actions) on library detail screens are clickable icons only — no text labels on the controls (accessibility labels still required).
+- Play / Pause / Shuffle (and similar transport actions) on library detail screens are clickable icons only - no text labels on the controls (accessibility labels still required).
 
 ### Playback
 
