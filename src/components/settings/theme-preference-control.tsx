@@ -1,18 +1,39 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { NeoSurface } from '@/components/ui/neo-surface';
 import { Radius, Spacing, type ThemePreference } from '@/constants/theme';
 import { useTheme } from '@/store/theme-provider';
 
-const OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
+const OPTIONS: {
+  value: ThemePreference;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconSelected: keyof typeof Ionicons.glyphMap;
+}[] = [
+  {
+    value: 'system',
+    label: 'System',
+    icon: 'phone-portrait-outline',
+    iconSelected: 'phone-portrait',
+  },
+  {
+    value: 'light',
+    label: 'Light',
+    icon: 'sunny-outline',
+    iconSelected: 'sunny',
+  },
+  {
+    value: 'dark',
+    label: 'Dark',
+    icon: 'moon-outline',
+    iconSelected: 'moon',
+  },
 ];
 
 export function ThemePreferenceControl() {
-  const { preference, setPreference } = useTheme();
+  const { colors, preference, setPreference } = useTheme();
 
   return (
     <NeoSurface variant="flat" radius={Radius.lg} style={styles.track}>
@@ -23,19 +44,30 @@ export function ThemePreferenceControl() {
             key={option.value}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={`${option.label} theme`}
+            accessibilityLabel={`${option.label} appearance`}
             onPress={() => setPreference(option.value)}
             style={styles.optionHit}
           >
-            <NeoSurface
-              variant={selected ? 'pressed' : 'flat'}
-              radius={Radius.md}
-              style={styles.option}
-            >
-              <AppText variant="label" tone={selected ? 'default' : 'muted'}>
+            <View style={styles.option}>
+              <NeoSurface
+                variant={selected ? 'raised' : 'pressed'}
+                radius={Radius.full}
+                style={styles.iconWell}
+              >
+                <Ionicons
+                  name={selected ? option.iconSelected : option.icon}
+                  size={22}
+                  color={selected ? colors.text : colors.textMuted}
+                />
+              </NeoSurface>
+              <AppText
+                variant="caption"
+                tone={selected ? 'default' : 'muted'}
+                style={selected ? styles.labelSelected : undefined}
+              >
                 {option.label}
               </AppText>
-            </NeoSurface>
+            </View>
           </Pressable>
         );
       })}
@@ -46,7 +78,8 @@ export function ThemePreferenceControl() {
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    padding: Spacing.one,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.two,
     gap: Spacing.one,
   },
   optionHit: {
@@ -54,7 +87,15 @@ const styles = StyleSheet.create({
   },
   option: {
     alignItems: 'center',
+    gap: Spacing.two,
+  },
+  iconWell: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.three,
+  },
+  labelSelected: {
+    fontWeight: '600',
   },
 });
