@@ -178,6 +178,7 @@ export default function ArtistDetailScreen() {
       searchPlaceholder="Search this artist"
       data={listData}
       keyExtractor={(item) => item.id}
+      getItemType={(item) => item.type}
       renderItem={renderItem}
       emptyTitle={isLoading ? 'Loading…' : artist ? 'No matching results' : 'Artist missing'}
       emptySubtitle={
