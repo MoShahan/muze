@@ -22,6 +22,8 @@ type LibraryBrowserProps<T> = {
   data: readonly T[];
   keyExtractor: (item: T) => string;
   renderItem: ListRenderItem<T>;
+  /** FlashList recycling hint for mixed row types (e.g. section / album / track). */
+  getItemType?: (item: T, index: number) => string | number | undefined;
   emptyTitle: string;
   emptySubtitle: string;
   emptyActionLabel?: string;
@@ -47,6 +49,7 @@ export function LibraryBrowser<T>({
   data,
   keyExtractor,
   renderItem,
+  getItemType,
   emptyTitle,
   emptySubtitle,
   emptyActionLabel,
@@ -127,6 +130,7 @@ export function LibraryBrowser<T>({
         data={data}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
+        getItemType={getItemType}
         style={styles.list}
         contentContainerStyle={{
           paddingHorizontal: Spacing.four,

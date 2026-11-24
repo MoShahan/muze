@@ -34,6 +34,7 @@ export function LibraryArtwork({ uri, size, round = false }: LibraryArtworkProps
         source={{ uri: displayUri }}
         style={{ width: size, height: size, borderRadius: radius }}
         contentFit="cover"
+        cachePolicy="memory-disk"
         recyclingKey={displayUri}
         transition={120}
       />
