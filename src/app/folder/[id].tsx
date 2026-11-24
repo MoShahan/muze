@@ -11,7 +11,13 @@ import { getFolderById, type FolderRow } from '@/lib/db/folders';
 import { listTracksForFolder, type CachedTrackRow } from '@/lib/db/tracks';
 import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 import { playTrackList } from '@/lib/library/play-tracks';
-import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
+import {
+  DEFAULT_TRACK_SORT,
+  DEFAULT_TRACK_SORT_DIRECTION,
+  sortTracks,
+  type TrackSortDirection,
+  type TrackSortKey,
+} from '@/lib/library/sort-tracks';
 import { usePlayback } from '@/store/playback-provider';
 
 export default function FolderDetailScreen() {
@@ -23,6 +29,9 @@ export default function FolderDetailScreen() {
   const [tracks, setTracks] = useState<CachedTrackRow[]>([]);
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<TrackSortKey>(DEFAULT_TRACK_SORT);
+  const [sortDirection, setSortDirection] = useState<TrackSortDirection>(
+    DEFAULT_TRACK_SORT_DIRECTION,
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -65,8 +74,8 @@ export default function FolderDetailScreen() {
         matchesLibraryQuery(track.artist, query) ||
         matchesLibraryQuery(track.filename, query),
     );
-    return sortTracks(filtered, sortKey);
-  }, [tracks, query, sortKey]);
+    return sortTracks(filtered, sortKey, sortDirection);
+  }, [tracks, query, sortKey, sortDirection]);
 
   const playFrom = useCallback(
     (startId: string | null, shuffle = false) => {
@@ -128,7 +137,12 @@ export default function FolderDetailScreen() {
               onPlay={() => playFrom(filteredTracks[0]?.id ?? tracks[0]?.id ?? null, false)}
               onShuffle={() => playFrom(null, true)}
             />
-            <TrackSortControl value={sortKey} onChange={setSortKey} />
+            <TrackSortControl
+              value={sortKey}
+              direction={sortDirection}
+              onChange={setSortKey}
+              onDirectionChange={setSortDirection}
+            />
           </View>
         ) : null
       }
