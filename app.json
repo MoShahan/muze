@@ -7,13 +7,16 @@
     "icon": "./assets/images/icon.png",
     "scheme": "muze",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#E6E9EF",
     "primaryColor": "#1C1E22",
     "ios": {
       "bundleIdentifier": "com.moshahan.muze",
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/icon.png",
+      "backgroundColor": "#E6E9EF"
     },
     "android": {
       "package": "com.moshahan.muze",
+      "backgroundColor": "#E6E9EF",
       "adaptiveIcon": {
         "backgroundColor": "#F1EFE9",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -38,11 +41,25 @@
         {
           "backgroundColor": "#E6E9EF",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 128,
+          "imageWidth": 180,
+          "resizeMode": "contain",
           "dark": {
             "backgroundColor": "#1C1E22",
             "image": "./assets/images/splash-icon-dark.png"
           }
+        }
+      ],
+      "expo-system-ui",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false
+        }
+      ],
+      [
+        "expo-status-bar",
+        {
+          "style": "dark"
         }
       ],
       [
@@ -101,7 +118,6 @@
           ]
         }
       ],
-      "expo-status-bar",
       "expo-font",
       "expo-image"
     ],

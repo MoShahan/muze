@@ -2,11 +2,19 @@
  * Neomorphic monochrome tokens.
  * Light canvas ~#E6E9EF, dark canvas ~#1C1E22 (not pure black for AMOLED).
  * Accent stays restrained gray / muted white - no bright colors.
+ *
+ * Splash backgrounds in `app.json` (`expo-splash-screen`) must stay in sync
+ * with these canvas values so the launch screen fades into the first frame.
  */
+
+export const SPLASH_BACKGROUND = {
+  light: '#E6E9EF',
+  dark: '#1C1E22',
+} as const;
 
 export const Colors = {
   light: {
-    canvas: '#E6E9EF',
+    canvas: SPLASH_BACKGROUND.light,
     surface: '#EEF1F6',
     surfaceRaised: '#F5F7FA',
     surfacePressed: '#DDE1E8',
@@ -22,12 +30,12 @@ export const Colors = {
     waveformRemaining: '#B8BEC8',
     overlay: 'rgba(42, 45, 51, 0.4)',
     // Aliases used by navigation / shared chrome
-    background: '#E6E9EF',
+    background: SPLASH_BACKGROUND.light,
     backgroundElement: '#EEF1F6',
     backgroundSelected: '#DDE1E8',
   },
   dark: {
-    canvas: '#1C1E22',
+    canvas: SPLASH_BACKGROUND.dark,
     surface: '#25282D',
     surfaceRaised: '#2C3036',
     surfacePressed: '#16181C',
@@ -42,7 +50,7 @@ export const Colors = {
     waveformPlayed: '#D4D4D6',
     waveformRemaining: '#3A3E45',
     overlay: 'rgba(0, 0, 0, 0.5)',
-    background: '#1C1E22',
+    background: SPLASH_BACKGROUND.dark,
     backgroundElement: '#25282D',
     backgroundSelected: '#2C3036',
   },
