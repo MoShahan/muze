@@ -3,6 +3,7 @@ import {
   isTrackSortKey,
   sortTracks,
   TRACK_SORT_OPTIONS,
+  trackSortOptionLabel,
 } from '@/lib/library/sort-tracks';
 import { makeTrack } from '@/test/fixtures';
 
@@ -44,6 +45,15 @@ describe('isTrackSortKey / defaults', () => {
     expect(TRACK_SORT_OPTIONS).toHaveLength(4);
     expect(DEFAULT_TRACK_SORT).toBe('title');
   });
+
+  it('labels include the active direction', () => {
+    expect(trackSortOptionLabel('title', 'asc')).toBe('Title A to Z');
+    expect(trackSortOptionLabel('title', 'desc')).toBe('Title Z to A');
+    expect(trackSortOptionLabel('dateAdded', 'desc')).toBe('Date added · Newest');
+    expect(trackSortOptionLabel('dateAdded', 'asc')).toBe('Date added · Oldest');
+    expect(trackSortOptionLabel('duration', 'asc')).toBe('Duration · Shortest first');
+    expect(trackSortOptionLabel('duration', 'desc')).toBe('Duration · Longest first');
+  });
 });
 
 describe('sortTracks', () => {
@@ -55,12 +65,24 @@ describe('sortTracks', () => {
     expect(sortTracks(tracks, 'artist').map((track) => track.id)).toEqual(['2', '3', '1']);
   });
 
-  it('sorts by date added newest first', () => {
+  it('sorts by date added newest first by default', () => {
     expect(sortTracks(tracks, 'dateAdded').map((track) => track.id)).toEqual(['2', '3', '1']);
   });
 
   it('sorts by duration ascending', () => {
     expect(sortTracks(tracks, 'duration').map((track) => track.id)).toEqual(['2', '3', '1']);
+  });
+
+  it('reverses title order when direction is desc', () => {
+    expect(sortTracks(tracks, 'title', 'desc').map((track) => track.id)).toEqual(['3', '1', '2']);
+  });
+
+  it('reverses date added to oldest first when direction is asc', () => {
+    expect(sortTracks(tracks, 'dateAdded', 'asc').map((track) => track.id)).toEqual([
+      '1',
+      '3',
+      '2',
+    ]);
   });
 
   it('does not mutate the input array', () => {
