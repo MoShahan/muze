@@ -250,12 +250,27 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
     playlistRef.current.loop = toPlaylistLoop(repeatRef.current, shuffleRef.current);
   }, []);
 
-  /** Push the JS queue into the native playlist when the id order changes. */
+  /**
+   * Push the JS queue into the native playlist when the id order changes.
+   *
+   * Android workaround for expo/expo#52192: the lock-screen MediaSession does
+   * not receive timeline updates, so rebuilding (clear/add) then skipTo(index)
+   * crashes with "Invalid PlayerInfo update" when index >= old count. Detach
+   * lock-screen controls before mutating the timeline, then re-bind after.
+   */
   const syncNativePlaylist = useCallback(
     (tracks: PlaybackTrack[], startIndex: number) => {
       const active = playlistRef.current;
       const signature = queueSignature(tracks);
-      if (signature !== nativeQueueSignatureRef.current) {
+      const safeIndex = Math.min(Math.max(0, startIndex), Math.max(0, tracks.length - 1));
+      const rebuilt = signature !== nativeQueueSignatureRef.current;
+
+      if (rebuilt) {
+        try {
+          active.clearLockScreenControls();
+        } catch {
+          // Best-effort detach before timeline mutation.
+        }
         active.clear();
         for (const track of tracks) {
           if (track.uri) {
@@ -264,13 +279,20 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
         }
         nativeQueueSignatureRef.current = signature;
       }
+
       applyPlaylistLoop();
-      const safeIndex = Math.min(Math.max(0, startIndex), Math.max(0, tracks.length - 1));
       if (tracks.length > 0 && active.currentIndex !== safeIndex) {
         active.skipTo(safeIndex);
       }
+
+      if (rebuilt) {
+        const track = tracks[safeIndex];
+        if (track) {
+          applyLockScreen(track);
+        }
+      }
     },
-    [applyPlaylistLoop],
+    [applyLockScreen, applyPlaylistLoop],
   );
 
   const selectTrackAtIndex = useCallback(
