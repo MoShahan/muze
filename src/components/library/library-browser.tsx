@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
-import { FlashList, type ListRenderItem } from '@shopify/flash-list';
-import { type ReactElement, type ReactNode } from 'react';
-import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlashList, type FlashListRef, type ListRenderItem } from '@shopify/flash-list';
+import { type ReactElement, type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlphabetIndex, ALPHABET_INDEX_RAIL_WIDTH } from '@/components/library/alphabet-index';
 import { LibrarySearchField } from '@/components/library/library-search-field';
 import { LibraryStatusCard } from '@/components/library/library-status-card';
 import { MINI_PLAYER_HEIGHT } from '@/components/player/mini-player';
 import { AppText } from '@/components/ui/app-text';
 import { Spacing } from '@/constants/theme';
+import { buildAlphabetIndexMap } from '@/lib/library/alphabet-index';
 import { usePlayback } from '@/store/playback-provider';
 import { useTheme } from '@/store/theme-provider';
 
@@ -37,6 +39,11 @@ type LibraryBrowserProps<T> = {
   /** When true, headerExtra spans edge-to-edge above search. */
   headerExtraBleed?: boolean;
   onBack?: () => void;
+  /**
+   * When provided and data is non-empty, shows an A-Z jump rail.
+   * Pass only when the list is alphabetically ordered by this label.
+   */
+  getAlphabetLabel?: (item: T) => string;
 };
 
 export function LibraryBrowser<T>({
@@ -61,15 +68,40 @@ export function LibraryBrowser<T>({
   hideTitle = false,
   headerExtraBleed = false,
   onBack,
+  getAlphabetLabel,
 }: LibraryBrowserProps<T>): ReactElement {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { currentTrack } = usePlayback();
   const miniPlayerPad = currentTrack ? MINI_PLAYER_HEIGHT + Spacing.three : 0;
+  const listRef = useRef<FlashListRef<T>>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  const showAlphabet = Boolean(getAlphabetLabel) && data.length > 0;
+
+  const alphabetIndexMap = useMemo(() => {
+    if (!getAlphabetLabel || data.length === 0) {
+      return new Map<string, number>();
+    }
+    return buildAlphabetIndexMap(data, getAlphabetLabel);
+  }, [data, getAlphabetLabel]);
+
+  const onSelectAlphabetIndex = useCallback((index: number) => {
+    void listRef.current?.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0,
+    });
+  }, []);
+
+  const onHeaderLayout = useCallback((event: LayoutChangeEvent) => {
+    setHeaderHeight(event.nativeEvent.layout.height);
+  }, []);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.canvas }]}>
       <View
+        onLayout={onHeaderLayout}
         style={[
           styles.header,
           {
@@ -126,14 +158,20 @@ export function LibraryBrowser<T>({
         </View>
       </View>
 
+      {/*
+        Keep FlashList a direct flex child of root. Wrapping it with an absoluteFill
+        overlay sibling broke item layout on FlashList v2 / Fabric.
+      */}
       <FlashList
+        ref={listRef}
         data={data}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         getItemType={getItemType}
         style={styles.list}
         contentContainerStyle={{
-          paddingHorizontal: Spacing.four,
+          paddingLeft: Spacing.four,
+          paddingRight: showAlphabet ? Spacing.four + ALPHABET_INDEX_RAIL_WIDTH : Spacing.four,
           paddingBottom: insets.bottom + Spacing.five + miniPlayerPad,
           paddingTop: Spacing.two,
         }}
@@ -158,6 +196,14 @@ export function LibraryBrowser<T>({
           </View>
         }
       />
+
+      {showAlphabet ? (
+        <AlphabetIndex
+          indexMap={alphabetIndexMap}
+          onSelectLetter={onSelectAlphabetIndex}
+          topOffset={headerHeight}
+        />
+      ) : null}
     </View>
   );
 }

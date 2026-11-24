@@ -1,5 +1,5 @@
 import { type Href, router } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 
 import { AudioPermissionPanel } from '@/components/library/audio-permission-panel';
@@ -15,6 +15,8 @@ import { useLibraryTracks } from '@/hooks/use-library-tracks';
 import { formatDurationMs } from '@/lib/library/filter';
 import { useLibraryScan } from '@/store/library-scan-provider';
 import { usePlayback } from '@/store/playback-provider';
+
+import type { CachedTrackRow } from '@/lib/db/tracks';
 
 /** Default tab (Expo `index` route). Product name: Songs. */
 export default function SongsScreen() {
@@ -117,6 +119,19 @@ export default function SongsScreen() {
   );
 
   const hasQuery = query.trim().length > 0;
+  const getAlphabetLabel = useMemo(() => {
+    if (hasQuery) {
+      return undefined;
+    }
+    if (sortKey === 'title') {
+      return (track: CachedTrackRow) => track.title;
+    }
+    if (sortKey === 'artist') {
+      return (track: CachedTrackRow) => track.artist;
+    }
+    return undefined;
+  }, [hasQuery, sortKey]);
+
   const scanFailed = status === 'error';
   const statusMessage = !isGranted
     ? null
@@ -214,6 +229,7 @@ export default function SongsScreen() {
           onDirectionChange={setSortDirection}
         />
       }
+      getAlphabetLabel={getAlphabetLabel}
     />
   );
 }

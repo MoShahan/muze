@@ -1,5 +1,5 @@
 import { useFocusEffect, router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { AlbumListItem } from '@/components/library/album-list-item';
 import { LibraryBrowser } from '@/components/library/library-browser';
@@ -8,6 +8,8 @@ import { useAudioLibraryPermission } from '@/hooks/use-audio-library-permission'
 import { useLibraryAlbums } from '@/hooks/use-library-albums';
 import { formatCountLabel } from '@/lib/library/filter';
 import { useLibraryScan } from '@/store/library-scan-provider';
+
+import type { AlbumRow } from '@/lib/db/albums';
 
 export default function AlbumsScreen() {
   const { isGranted } = useAudioLibraryPermission();
@@ -45,11 +47,17 @@ export default function AlbumsScreen() {
     [onPressAlbum],
   );
 
+  const hasQuery = query.trim().length > 0;
+  const getAlphabetLabel = useMemo(() => {
+    if (hasQuery) {
+      return undefined;
+    }
+    return (album: AlbumRow) => album.title;
+  }, [hasQuery]);
+
   if (!isGranted) {
     return <LibraryPermissionScreen title="Albums" />;
   }
-
-  const hasQuery = query.trim().length > 0;
 
   return (
     <LibraryBrowser
@@ -73,6 +81,7 @@ export default function AlbumsScreen() {
       onRefresh={() => {
         void rescan();
       }}
+      getAlphabetLabel={getAlphabetLabel}
     />
   );
 }
