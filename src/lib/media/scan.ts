@@ -181,7 +181,7 @@ function sourceModifiedMatches(cached: number | null, asset: number | null): boo
 /**
  * Re-parse when missing, uri changed, mtime changed, or cached artwork file was evicted.
  */
-function shouldReparseTrack(
+export function shouldReparseTrack(
   asset: RawScannedAudioAsset,
   cached: CachedTrackRow | undefined,
 ): boolean {

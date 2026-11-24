@@ -11,6 +11,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { Spacing } from '@/constants/theme';
 import { formatDurationMs } from '@/lib/library/filter';
+import { progressFromX } from '@/lib/library/playback-math';
 import { useTheme } from '@/store/theme-provider';
 
 type WaveformSeekbarProps = {
@@ -32,11 +33,9 @@ export function WaveformSeekbar({
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
 
-  const clampProgress = (value: number) => Math.min(1, Math.max(0, value));
-
   const seekFromX = (x: number) => {
     if (width <= 0) return;
-    onSeek(clampProgress(x / width));
+    onSeek(progressFromX(x, width));
   };
 
   // Gesture callbacks run on the UI thread - hop to JS before calling React state setters.

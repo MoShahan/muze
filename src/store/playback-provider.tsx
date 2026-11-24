@@ -7,12 +7,7 @@
  * notification metadata (title, artist, artwork) for background playback.
  * JS still owns shuffle/repeat policy, resume persistence, and sleep timer.
  */
-import {
-  setAudioModeAsync,
-  useAudioPlaylist,
-  useAudioPlaylistStatus,
-  type AudioPlaylistLoopMode,
-} from 'expo-audio';
+import { setAudioModeAsync, useAudioPlaylist, useAudioPlaylistStatus } from 'expo-audio';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
   createContext,
@@ -31,14 +26,17 @@ import {
   setPlaybackResumeState,
 } from '@/lib/db/settings';
 import { artworkDisplayUri, getTrackById, type CachedTrackRow } from '@/lib/db/tracks';
+import {
+  clampResumePositionMs,
+  playModeFromFlags,
+  toPlaylistLoop,
+  type PlayMode,
+  type RepeatMode,
+} from '@/lib/library/playback-math';
 import { moveQueueItem, shuffleTracksKeepingCurrent } from '@/lib/library/playback-queue';
 import { ensurePlaybackNotificationPermission } from '@/lib/media/playback-notifications';
 
-export type RepeatMode = 'off' | 'all' | 'one';
-
-/** Combined transport mode shown on the player control (cycles shuffle → all → one). */
-export type PlayMode = 'shuffle' | 'all' | 'one';
-
+export type { PlayMode, RepeatMode };
 export type PlaybackTrack = {
   id: string;
   title: string;
@@ -109,16 +107,6 @@ function lockScreenMetadata(track: PlaybackTrack) {
   };
 }
 
-function playModeFromFlags(shuffle: boolean, repeat: RepeatMode): PlayMode {
-  if (repeat === 'one') {
-    return 'one';
-  }
-  if (shuffle) {
-    return 'shuffle';
-  }
-  return 'all';
-}
-
 function trackRowToPlayback(row: CachedTrackRow): PlaybackTrack {
   return {
     id: row.id,
@@ -129,17 +117,6 @@ function trackRowToPlayback(row: CachedTrackRow): PlaybackTrack {
     durationMs: row.durationMs,
     uri: row.uri,
   };
-}
-
-/** Map Muze repeat/shuffle into expo-audio playlist loop mode. */
-function toPlaylistLoop(repeat: RepeatMode, shuffle: boolean): AudioPlaylistLoopMode {
-  if (repeat === 'one') {
-    return 'single';
-  }
-  if (repeat === 'off' && !shuffle) {
-    return 'none';
-  }
-  return 'all';
 }
 
 function queueSignature(tracks: readonly PlaybackTrack[]): string {
@@ -697,8 +674,7 @@ export function PlaybackProvider({ children }: PropsWithChildren) {
       }
 
       const track = trackRowToPlayback(row);
-      const maxPosition = Math.max(0, row.durationMs > 0 ? row.durationMs - 250 : saved.positionMs);
-      const seekMs = Math.min(Math.max(0, saved.positionMs), maxPosition);
+      const seekMs = clampResumePositionMs(saved.positionMs, row.durationMs);
 
       setCurrentTrackState(track);
       setQueueState([track]);
