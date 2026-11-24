@@ -26,7 +26,7 @@ npx expo install --fix      # fix incompatible package versions
 - After a task, run **lint only** (`npx expo lint`) if needed to catch issues from the change.
 - **Do not** run Jest / `npm test` / `npm run test:ci` after every change. Tests waste time and tokens mid-project; the human will run the full test suite once the project is complete (Final verification).
 - **Do not** run `tsc --noEmit` after every edit; batch typecheck for Final verification.
-- Do not write or expand feature test cases during implementation phases; batch that under Final verification in `TODO.md`.
+- Do not write or expand feature test cases during implementation phases; batch them for Final verification after features are in.
 
 ## Navigation & Routing
 
