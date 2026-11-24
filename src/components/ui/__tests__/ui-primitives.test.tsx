@@ -7,18 +7,17 @@ import { NeoIconButton } from '@/components/ui/neo-icon-button';
 import { NeoSurface } from '@/components/ui/neo-surface';
 import { Colors } from '@/constants/theme';
 
-jest.mock('@/store/theme-provider', () => {
-  const { Colors: mockColors } = require('@/constants/theme');
-  return {
-    useTheme: () => ({
-      preference: 'light' as const,
-      setPreference: jest.fn(),
-      theme: 'light' as const,
-      colors: mockColors.light,
-      isDark: false,
-    }),
-  };
-});
+const mockLightColors = Colors.light;
+
+jest.mock('@/store/theme-provider', () => ({
+  useTheme: () => ({
+    preference: 'light' as const,
+    setPreference: jest.fn(),
+    theme: 'light' as const,
+    colors: mockLightColors,
+    isDark: false,
+  }),
+}));
 
 describe('AppText', () => {
   it('renders body copy by default', async () => {
