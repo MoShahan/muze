@@ -22,7 +22,13 @@ import {
 import { type CachedTrackRow } from '@/lib/db/tracks';
 import { formatCountLabel, formatDurationMs, matchesLibraryQuery } from '@/lib/library/filter';
 import { playTrackList } from '@/lib/library/play-tracks';
-import { DEFAULT_TRACK_SORT, sortTracks, type TrackSortKey } from '@/lib/library/sort-tracks';
+import {
+  DEFAULT_TRACK_SORT,
+  DEFAULT_TRACK_SORT_DIRECTION,
+  sortTracks,
+  type TrackSortDirection,
+  type TrackSortKey,
+} from '@/lib/library/sort-tracks';
 import { usePlayback } from '@/store/playback-provider';
 
 export default function PlaylistDetailScreen() {
@@ -34,6 +40,9 @@ export default function PlaylistDetailScreen() {
   const [tracks, setTracks] = useState<CachedTrackRow[]>([]);
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<TrackSortKey>(DEFAULT_TRACK_SORT);
+  const [sortDirection, setSortDirection] = useState<TrackSortDirection>(
+    DEFAULT_TRACK_SORT_DIRECTION,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameDraft, setRenameDraft] = useState('');
@@ -74,8 +83,8 @@ export default function PlaylistDetailScreen() {
         matchesLibraryQuery(track.artist, query) ||
         matchesLibraryQuery(track.album, query),
     );
-    return sortTracks(filtered, sortKey);
-  }, [tracks, query, sortKey]);
+    return sortTracks(filtered, sortKey, sortDirection);
+  }, [tracks, query, sortKey, sortDirection]);
 
   const playFrom = useCallback(
     (startId: string | null, shuffle = false) => {
@@ -249,7 +258,12 @@ export default function PlaylistDetailScreen() {
                   </NeoSurface>
                 </Pressable>
               </View>
-              <TrackSortControl value={sortKey} onChange={setSortKey} />
+              <TrackSortControl
+                value={sortKey}
+                direction={sortDirection}
+                onChange={setSortKey}
+                onDirectionChange={setSortDirection}
+              />
             </View>
           ) : null
         }
