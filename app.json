@@ -89,13 +89,6 @@
       ],
       "expo-asset",
       [
-        "expo-notifications",
-        {
-          "color": "#1C1E22",
-          "defaultChannel": "muze-playback"
-        }
-      ],
-      [
         "expo-widgets",
         {
           "enableAndroid": true,

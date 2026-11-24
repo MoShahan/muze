@@ -9,8 +9,8 @@ import {
 import Svg, { Rect } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { formatTrackTime } from '@/constants/mock-player';
 import { Spacing } from '@/constants/theme';
+import { formatDurationMs } from '@/lib/library/filter';
 import { useTheme } from '@/store/theme-provider';
 
 type WaveformSeekbarProps = {
@@ -100,9 +100,11 @@ export function WaveformSeekbar({
       </GestureDetector>
 
       <View style={styles.times}>
-        <Text style={[styles.time, { color: colors.textMuted }]}>{formatTrackTime(elapsedMs)}</Text>
         <Text style={[styles.time, { color: colors.textMuted }]}>
-          {formatTrackTime(durationMs)}
+          {formatDurationMs(elapsedMs)}
+        </Text>
+        <Text style={[styles.time, { color: colors.textMuted }]}>
+          {formatDurationMs(durationMs)}
         </Text>
       </View>
     </View>
